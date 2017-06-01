@@ -1,6 +1,7 @@
 language: python
 python:
     - "3.5"
+    - "2.7"
 
 before_install:
   - mkdir -p $HOME/bin
@@ -15,4 +16,4 @@ script:
   - pytest --junit-xml=testresults.xml
 
 after_script:
-  - testspace testresults*.xml
+  - testspace [$TRAVIS_PYTHON_VERSION]testresults*.xml
