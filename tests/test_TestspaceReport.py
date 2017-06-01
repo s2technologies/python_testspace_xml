@@ -5,12 +5,13 @@ from lxml import etree, objectify
 from lxml.etree import XMLSyntaxError
 
 def create_simple_testspace_xml(self):
-    suite_root = testspace_xml.TestspaceReport()
-    example_suite = suite_root.GetOrAddSuite('Example Suite')
+    testspace_report = testspace_xml.TestspaceReport()
+    example_suite = testspace_report.GetOrAddSuite('Example Suite')
     test_case = testspace_xml.TestCase(example_suite, 'test a', 'passed')
     example_suite.AddTestCase(test_case)
-    writer = testspace_xml.XmlWriter(suite_root)
-    writer.Write('testspace.xml')
+    # writer = testspace_xml.XmlWriter(testspace_report)
+    # writer.Write('testspace.xml')
+    testspace_report.xml_file('testspace.xml')
 
     xml_file = open('testspace.xml', 'r')
     self.testspace_xml_string = xml_file.read()
@@ -45,6 +46,7 @@ def xml_validator(some_xml_string, xsd_file):
         # handle exception here
         return False
     return True
+
 
 
 

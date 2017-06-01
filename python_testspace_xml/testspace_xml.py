@@ -413,3 +413,7 @@ class TestspaceReport(TestSuite):
 
     def GetRootSuite(self):
         return self
+
+    def xml_file(self, outfile):
+        writer = XmlWriter(self)
+        writer.Write(outfile)
