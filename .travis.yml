@@ -1,7 +1,7 @@
 language: python
 python:
-    - "3.5"
     - "2.7"
+    - "3.5"
 
 before_install:
   - mkdir -p $HOME/bin
@@ -16,4 +16,9 @@ script:
   - py.test --junit-xml=testresults.xml
 
 after_script:
-  - testspace [$TRAVIS_PYTHON_VERSION]testresults*.xml
+  - |
+    if [ "${$TRAVIS_PYTHON_VERSION}" = "3.5" ]; then
+      testspace [$TRAVIS_PYTHON_VERSION]testresults*.xml [${$TRAVIS_PYTHON_VERSION}]flake8.txt{lint};
+    else
+      testspace [$TRAVIS_PYTHON_VERSION]testresults*.xml;
+    fi
