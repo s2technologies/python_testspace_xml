@@ -1,6 +1,7 @@
 language: python
 python:
     - "3.5"
+    - "2.7"
 
 before_install:
   - mkdir -p $HOME/bin
@@ -11,8 +12,8 @@ install:
   - pip install -r requirements.txt
 
 script:
-  - export PYTHONPATH=$TRAVIS_BUILD_DIR
-  - pytest --junit-xml=testresults.xml
+  - export PYTHONPATH=$PYTHONPATH:$TRAVIS_BUILD_DIR
+  - py.test --junit-xml=testresults.xml
 
 after_script:
-  - testspace testresults*.xml
+  - testspace [$TRAVIS_PYTHON_VERSION]testresults*.xml
