@@ -9,73 +9,74 @@ import tempfile
 from xml.dom.minidom import parseString
 
 
-def MakeFileHrefLink(FilePath):
-    return "<a href='file://" + FilePath.replace('\\', '/') + "'>" + FilePath + '</a>'
+def make_file_href_link(file_path):
+    return "<a href='file://" + file_path.replace('\\', '/') + "'>" + file_path + '</a>'
 
 
 class CustomData:
-    def __init__(self, Name, Value):
-        self.name = Name
-        self.value = Value
+    def __init__(self, name, value):
+        self.name = name
+        self.value = value
 
-    def WriteXml(self, parentElement, dom):
-        dElem = dom.createElement('custom_data')
-        dElem.setAttribute('name', self.name)
+    def write_xml(self, parent_element, dom):
+        d_elem = dom.createElement('custom_data')
+        d_elem.setAttribute('name', self.name)
         cdata = dom.createCDATASection(self.value)
-        dElem.appendChild(cdata)
-        parentElement.appendChild(dElem)
+        d_elem.appendChild(cdata)
+        parent_element.appendChild(d_elem)
 
 
 class AnnotationComment:
-    def __init__(self, Name, Comment):
-        self.name = Name
-        self.comment = Comment
+    def __init__(self, name, comment):
+        self.name = name
+        self.comment = comment
 
 
 class Annotation:
-    def __init__(self, Level, Description):
-        self.level = Level
-        self.description = Description
+    def __init__(self, level, description):
+        self.level = level
+        self.description = description
         self.name = ''
         self.comments = []
 
-    def AddComment(self, Name, Comment):
-        comment = AnnotationComment(Name, Comment)
+    def add_comment(self, name, comment):
+        comment = AnnotationComment(name, comment)
         self.comments.append(comment)
 
-    def CleanUp(self):
+    def clean_up(self):
         pass
 
 
 class FileAnnotation(Annotation):
-    def __init__(self, FilePath, Level='info', Description='', MimeType='text/plain', DeleteFile=True):
-        Annotation.__init__(self, Level, Description)
-        self.mimeType = MimeType
-        self.filePath = FilePath
+    def __init__(self, file_path, level='info', description='',
+                 mime_type='text/plain', delete_file=True):
+        Annotation.__init__(self, level, description)
+        self.mimeType = mime_type
+        self.filePath = file_path
         # self.filePath = os.path.abspath(FilePath)
         # this covers the case where the path ends with a backslash
-        self.fileName = ntpath.basename(FilePath)
-        self.deleteFile = DeleteFile
+        self.fileName = ntpath.basename(file_path)
+        self.deleteFile = delete_file
 
-    def CleanUp(self):
+    def clean_up(self):
         if self.deleteFile and os.path.isfile(self.filePath):
             os.remove(self.filePath)
 
-    def WriteXml(self, parentElement, dom):
+    def write_xml(self, parent_element, dom):
         if not os.path.isfile(self.filePath):
             # write as a warning text annotation
             ta = TextAnnotation(self.name or self.fileName, self.level)
             ta.description = 'File: ' + self.filePath + ' not found.'
             for com in self.comments:
                 ta.comments.append(com)
-            ta.WriteXml(parentElement, dom)
+            ta.write_xml(parent_element, dom)
             return
 
         # write as a file annotation
         anno = dom.createElement("annotation")
         anno.setAttribute("default_file_name", "true")
         anno.setAttribute("link_file", "false")
-        anno.setAttribute("description", XmlWriter.FixLineEnds(self.description))
+        anno.setAttribute("description", XmlWriter.fix_line_ends(self.description))
         anno.setAttribute("level", self.level)
         anno.setAttribute("file", "file://" + self.filePath)
         anno.setAttribute("mime_type", self.mimeType)
@@ -84,242 +85,187 @@ class FileAnnotation(Annotation):
         if os.path.isfile(self.filePath):
             # gzip the file
             with open(self.filePath, 'rb') as inFile:
-                outFile = tempfile.TemporaryFile()
-                gzipFilePath = outFile.name
-                outFile.close()
-                outFile = gzip.open(gzipFilePath, 'wb')
-                outFile.writelines(inFile)
-                outFile.close()
+                out_file = tempfile.TemporaryFile()
+                gzip_file_path = out_file.name
+                out_file.close()
+                out_file = gzip.open(gzip_file_path, 'wb')
+                out_file.writelines(inFile)
+                out_file.close()
                 inFile.close()
 
                 # base64 the file
-                outFile = open(gzipFilePath, 'rb')
-                gzipData = outFile.read()
-                b64Data = base64.standard_b64encode(gzipData)
-                outFile.close()
-                os.remove(gzipFilePath)
-                cdata = dom.createCDATASection(b64Data)
+                out_file = open(gzip_file_path, 'rb')
+                gzip_data = out_file.read()
+                b64_data = base64.standard_b64encode(gzip_data)
+                out_file.close()
+                os.remove(gzip_file_path)
+                cdata = dom.createCDATASection(b64_data)
                 anno.appendChild(cdata)
 
         # add comments
         for c in self.comments:
-            cElem = dom.createElement('comment')
-            cElem.setAttribute("label", c.name)
+            c_elem = dom.createElement('comment')
+            c_elem.setAttribute("label", c.name)
             cdata = dom.createCDATASection(c.comment)
-            cElem.appendChild(cdata)
-            anno.appendChild(cElem)
+            c_elem.appendChild(cdata)
+            anno.appendChild(c_elem)
 
-        parentElement.appendChild(anno)
+        parent_element.appendChild(anno)
 
 
 class TextAnnotation(Annotation):
-    def __init__(self, Name, Level='info', Description=''):
-        Annotation.__init__(self, Level, Description)
-        self.name = Name
+    def __init__(self, name, level='info', description=''):
+        Annotation.__init__(self, level, description)
+        self.name = name
 
-    def WriteXml(self, parentElement, dom):
+    def write_xml(self, parent_element, dom):
         # write as a file annotation to the root suite
         anno = dom.createElement("annotation")
-        anno.setAttribute("description", XmlWriter.FixLineEnds(self.description))
+        anno.setAttribute("description", XmlWriter.fix_line_ends(self.description))
         anno.setAttribute("level", self.level)
         anno.setAttribute("name", self.name)
 
         # add comments
         for c in self.comments:
-            cElem = dom.createElement('comment')
-            cElem.setAttribute("label", c.name)
+            c_elem = dom.createElement('comment')
+            c_elem.setAttribute("label", c.name)
             cdata = dom.createCDATASection(c.comment)
-            cElem.appendChild(cdata)
-            anno.appendChild(cElem)
+            c_elem.appendChild(cdata)
+            anno.appendChild(c_elem)
 
-        parentElement.appendChild(anno)
+        parent_element.appendChild(anno)
 
 
 class TestCase:
-    def __init__(self, ParentSuite, Name, Status='passed', NameDeduped=False):
-        self.name = Name  # instance variable unique to each instance
-        # true if name has split name appended to de-dupe
-        self.nameDeduped = NameDeduped
+    def __init__(self, name, status='passed'):
+        self.name = name
         self.description = ''
-        self.status = Status
-        self.customData = []
+        self.status = status
+        self.custom_data = []
         self.annotations = []
-        self.parentSuite = ParentSuite
-        self.startTime = ""
+        self.start_time = ""
         self.duration = 0
         # path to file with additional diagnostics
-        self.diagnosticFile = None
-        self.splitName = ""
-        self.metaInfo = ""
+        self.diagnostic_file = None
+        self.meta_info = ""
 
-    def CleanUp(self):
+    def clean_up(self):
         for a in self.annotations:
-            a.CleanUp()
+            a.clean_up()
 
-    # all chars up to first '_'
-    # or None if no '_'
-    def GetFirstNameSegment(self):
-        n = self.name.split('_')[0]
-        if n == self.name:
-            return None
-        else:
-            # testspace does not differentiate on case; same name. different case
-            # will be considered a duplicate
-            return n.lower()
+    def set_description(self, description):
+        self.description = description
 
-    def SetDescription(self, Description):
-        self.description = Description
+    def set_duration_ms(self, duration):
+        self.duration = duration
 
-    def SetDurationMs(self, Duration):
-        self.duration = Duration
-
-    def Fail(self, Reason):
+    def fail(self, reason):
         self.status = 'failed'
-        ta = self.AddTextAnnotation('FAIL', 'error')
-        ta.description = Reason
+        ta = self.add_text_annotation('FAIL', 'error')
+        ta.description = reason
 
-    def NoteInfo(self, Message):
-        ta = self.AddTextAnnotation('Info', 'info')
-        ta.description = Message
+    def note_info(self, message):
+        ta = self.add_text_annotation('Info', 'info')
+        ta.description = message
 
-    def NoteWarn(self, Message):
-        ta = self.AddTextAnnotation('Warning', 'warn')
-        ta.description = Message
+    def note_warn(self, message):
+        ta = self.add_text_annotation('Warning', 'warn')
+        ta.description = message
 
-    def NoteError(self, Message):
-        ta = self.AddTextAnnotation('Error', 'error')
-        ta.description = Message
+    def note_error(self, message):
+        ta = self.add_text_annotation('Error', 'error')
+        ta.description = message
 
-    def AddCustomData(self, Name, Value):
-        d = CustomData(Name, Value)
-        self.customData.append(d)
+    def add_custom_data(self, name, value):
+        d = CustomData(name, value)
+        self.custom_data.append(d)
         return d
 
-    def AddFileAnnotation(self, FilePath, Level='info', Description='', MimeType='text/plain'):
-        fa = FileAnnotation(FilePath, Level, Description, MimeType)
+    def add_file_annotation(self, file_path, level='info', description='', mime_type='text/plain'):
+        fa = FileAnnotation(file_path, level, description, mime_type)
         self.annotations.append(fa)
         return fa
 
-    def AddTextAnnotation(self, Name, Level='info', Description=''):
-        ta = TextAnnotation(Name, Level, Description)
+    def add_text_annotation(self, name, level='info', description=''):
+        ta = TextAnnotation(name, level, description)
         self.annotations.append(ta)
         return ta
 
-    def SetStatus(self, status):
-        if status == 'passed':
-            self.parentSuite.passed += 1
-        elif status == 'failed':
-            self.parentSuite.failed += 1
-        elif status == 'not_applicable':
-            self.parentSuite.notApplicable += 1
-        elif status == 'in_progress':
-            self.parentSuite.inProgress += 1
-        else:
-            raise Exception('unknown tests status')
-
+    def set_status(self, status):
         self.status = status
 
-    def SetStartTime(self, GmtString):
-        if not self.parentSuite.startTime:
-            self.parentSuite.startTime = GmtString
-        self._startTime = GmtString
+    def set_start_time(self, gmt_string):
+        self._start_time = gmt_string
 
 
 class TestSuite:
-    def __init__(self, Name):
+    def __init__(self, name):
 
         # optional sub-suites
-        self.subSuites = {}
-
-        self.isRootSuite = False
-        self.name = Name
+        self.sub_suites = {}
+        self.is_root_suite = False
+        self.name = name
         self.description = ''
         self.passed = 0
         self.failed = 0
-        self.notApplicable = 0
-        self.inProgress = 0
-        self.startTime = ''
-        self.testCases = []
-        self.customData = []
+        self.not_applicable = 0
+        self.in_progress = 0
+        self.start_time = ''
+        self.test_cases = []
+        self.custom_data = []
         self.annotations = []
-        # used for efficiently de-duping testcase names
-        self.tcNameDict = {}
 
-    def CleanUp(self):
-        for s in self.subSuites:
-            self.GetOrAddSuite(s).CleanUp()
-        for tc in self.testCases:
-            tc.CleanUp()
+    def clean_up(self):
+        for s in self.sub_suites:
+            self.get_or_add_suite(s).clean_up()
+        for tc in self.test_cases:
+            tc.clean_up()
         for a in self.annotations:
-            a.CleanUp()
+            a.clean_up()
 
-    def AddTestCase(self, tc):
-        tc.name = self.GetUniqueTestCaseName(tc.name)
-        self.UpdateRollUps(tc)
-        self.testCases.append(tc)
-        self.tcNameDict[tc.name] = ''
+    def add_test_case(self, tc):
+        self.update_roll_ups(tc)
+        self.test_cases.append(tc)
         return tc
 
-    def GetUniqueTestCaseNamex(self, ProposedName):
-        # check for duplicate name
-        n = 0
-        newName = ProposedName
-        done = False
-        while not done:
-            done = True
-            for t in self.testCases:
-                if t.name == newName:
-                    n += 1
-                    newName = ProposedName + '(' + str(n) + ')'
-                    done = False
-                    break
-        return newName
-
-    def GetUniqueTestCaseName(self, ProposedName):
-        newName = ProposedName
-        n = 0
-        while newName in self.tcNameDict:
-            n += 1
-            newName = ProposedName + '(' + str(n) + ')'
-        return newName
-
-    def UpdateRollUps(self, tc):
+    def update_roll_ups(self, tc):
         if tc.status == 'passed':
             self.passed += 1
         elif tc.status == 'failed':
             self.failed += 1
         elif tc.status == 'not_applicable':
-            self.notApplicable += 1
+            self.not_applicable += 1
         elif tc.status == 'in_progress':
-            self.inProgress += 1
+            self.in_progress += 1
         elif True:
             assert (False)
 
-    def GetOrAddSuite(self, suiteName):
-        if not suiteName:
+    def get_or_add_suite(self, suite_name):
+        if not suite_name:
             # write under root suite
-            return self.GetOrAddSuite('uncategorized')
-        if suiteName in self.subSuites.keys():
-            return self.subSuites[suiteName]
-        return self.AddSuite(suiteName)
+            return self.get_or_add_suite('uncategorized')
+        if suite_name in self.sub_suites.keys():
+            return self.sub_suites[suite_name]
+        return self.add_suite(suite_name)
 
-    def AddSuite(self, Name):
-        newSuite = TestSuite(Name)
-        self.subSuites[str(Name)] = newSuite
-        return newSuite
+    def add_suite(self, name):
+        new_suite = TestSuite(name)
+        self.sub_suites[str(name)] = new_suite
+        return new_suite
 
-    def AddCustomData(self, Name, Value):
-        d = CustomData(Name, Value)
-        self.customData.append(d)
+    def add_custom_data(self, name, value):
+        d = CustomData(name, value)
+        self.custom_data.append(d)
         return d
 
-    def AddFileAnnotation(self, FilePath, Level='info', Description='', MimeType='text/plain', DeleteFile=True):
-        fa = FileAnnotation(FilePath, Level, Description, MimeType, DeleteFile)
+    def add_file_annotation(self, file_path, level='info', description='',
+                            mime_type='text/plain', delete_file=True):
+        fa = FileAnnotation(file_path, level, description, mime_type, delete_file)
         self.annotations.append(fa)
         return fa
 
-    def AddTextAnnotation(self, Name, Level='info', Description=''):
-        ta = TextAnnotation(Name, Level, Description)
+    def add_text_annotation(self, name, level='info', description=''):
+        ta = TextAnnotation(name, level, description)
         self.annotations.append(ta)
         return ta
 
@@ -330,90 +276,90 @@ class XmlWriter:
     <reporter schema_version="1.0">
     </reporter>
     '''
-    def __init__(self, Report):
-        self.report = Report
+
+    def __init__(self, report):
+        self.report = report
         self.dom = parseString(self.xmlTemplate)
 
     @staticmethod
-    def FixLineEnds(s):
+    def fix_line_ends(s):
         br = '<br/>'
         ss = str(s)
         sss = ss.replace('\r\n', br)
         return sss.replace('\n', br)
 
-    def Write(self, TargetFilePath=''):
-        docElem = self.dom.documentElement
-        self.WriteSuite(docElem, self.report.GetRootSuite())
-        if TargetFilePath:
-            with open(TargetFilePath, 'w') as f:
+    def write(self, target_file_path=''):
+        doc_elem = self.dom.documentElement
+        self.write_suite(doc_elem, self.report.get_root_suite())
+        if target_file_path:
+            with open(target_file_path, 'w') as f:
                 f.write(self.dom.toprettyxml())
                 f.flush()
         else:
             sys.stdout.write(self.dom.toxml())
         # print(self.dom.toprettyxml())
         # print(self.dom.toxml())
-        self.CleanUp()
+        self.clean_up()
 
-    def CleanUp(self):
-        self.report.GetRootSuite().CleanUp()
+    def clean_up(self):
+        self.report.get_root_suite().clean_up()
 
-    def WriteSuite(self, ParentNode, TestSuite):
+    def write_suite(self, parent_node, test_suite):
         # don't explicitly add suite for root suite
-        suiteElem = ParentNode
-        if not TestSuite.isRootSuite:
-            suiteElem = self.dom.createElement('test_suite')
-            suiteElem.setAttribute('name', TestSuite.name)
-            suiteElem.setAttribute('description', TestSuite.description)
-            suiteElem.setAttribute('passed', str(TestSuite.passed))
-            suiteElem.setAttribute('failed', str(TestSuite.failed))
-            suiteElem.setAttribute('not_applicable', str(TestSuite.notApplicable))
-            suiteElem.setAttribute('in_progress', str(TestSuite.inProgress))
-            suiteElem.setAttribute('start_time', str(TestSuite.startTime))
-            ParentNode.appendChild(suiteElem)
+        suite_elem = parent_node
+        if not test_suite.is_root_suite:
+            suite_elem = self.dom.createElement('test_suite')
+            suite_elem.setAttribute('name', test_suite.name)
+            suite_elem.setAttribute('description', test_suite.description)
+            suite_elem.setAttribute('passed', str(test_suite.passed))
+            suite_elem.setAttribute('failed', str(test_suite.failed))
+            suite_elem.setAttribute('not_applicable', str(test_suite.not_applicable))
+            suite_elem.setAttribute('in_progress', str(test_suite.in_progress))
+            suite_elem.setAttribute('start_time', str(test_suite.start_time))
+            parent_node.appendChild(suite_elem)
 
-        for a in TestSuite.annotations:
-            a.WriteXml(suiteElem, self.dom)
+        for a in test_suite.annotations:
+            a.write_xml(suite_elem, self.dom)
 
-        for d in TestSuite.customData:
-            d.WriteXml(suiteElem, self.dom)
+        for d in test_suite.custom_data:
+            d.write_xml(suite_elem, self.dom)
 
-        for tc in TestSuite.testCases:
-            self.WriteTestCase(suiteElem, tc)
+        for tc in test_suite.test_cases:
+            self.write_test_case(suite_elem, tc)
 
         # write child suites, sort by name
-        for ts in sorted(TestSuite.subSuites.keys()):
-            self.WriteSuite(suiteElem, TestSuite.subSuites[ts])
+        for ts in sorted(test_suite.sub_suites.keys()):
+            self.write_suite(suite_elem, test_suite.sub_suites[ts])
 
-    def WriteTestCase(self, ParentNode, TestCase):
-        elemTC = self.dom.createElement('test_case')
+    def write_test_case(self, parent_node, test_case):
+        elem_tc = self.dom.createElement('test_case')
 
-        elemTC.setAttribute('name', TestCase.name)
-        elemTC.setAttribute('description', self.FixLineEnds(TestCase.description))
-        elemTC.setAttribute('status', TestCase.status)
-        elemTC.setAttribute('start_time', TestCase.startTime)
-        elemTC.setAttribute('duration', str(TestCase.duration))
-        ParentNode.appendChild(elemTC)
+        elem_tc.setAttribute('name', test_case.name)
+        elem_tc.setAttribute('description', self.fix_line_ends(test_case.description))
+        elem_tc.setAttribute('status', test_case.status)
+        elem_tc.setAttribute('start_time', test_case.start_time)
+        elem_tc.setAttribute('duration', str(test_case.duration))
+        parent_node.appendChild(elem_tc)
 
-        for a in TestCase.annotations:
-            a.WriteXml(elemTC, self.dom)
+        for a in test_case.annotations:
+            a.write_xml(elem_tc, self.dom)
 
-        for d in TestCase.customData:
-            d.WriteXml(elemTC, self.dom)
+        for d in test_case.custom_data:
+            d.write_xml(elem_tc, self.dom)
 
 
 class TestspaceReport(TestSuite):
     def __init__(self):
         TestSuite.__init__(self, '__root__')
-        self.isRootSuite = True
+        self.is_root_suite = True
 
-    # def AddTestCase(self, Name, Status='passed', NameDeduped=False):
-    #     tc = TestCase(None, Name, Status, NameDeduped)
-    #     return AddTestCase(tc)
-    #     # todo: check for duplicate test case name and fix
-
-    def GetRootSuite(self):
+    def get_root_suite(self):
         return self
 
     def xml_file(self, outfile):
         writer = XmlWriter(self)
-        writer.Write(outfile)
+        writer.write(outfile)
+
+    def xml_console(self):
+        writer = XmlWriter(self)
+        writer.write()
