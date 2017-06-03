@@ -206,10 +206,6 @@ class TestSuite:
         self.is_root_suite = False
         self.name = name
         self.description = ''
-        self.passed = 0
-        self.failed = 0
-        self.not_applicable = 0
-        self.in_progress = 0
         self.start_time = ''
         self.test_cases = []
         self.custom_data = []
@@ -224,21 +220,8 @@ class TestSuite:
             a.clean_up()
 
     def add_test_case(self, tc):
-        self.update_roll_ups(tc)
         self.test_cases.append(tc)
         return tc
-
-    def update_roll_ups(self, tc):
-        if tc.status == 'passed':
-            self.passed += 1
-        elif tc.status == 'failed':
-            self.failed += 1
-        elif tc.status == 'not_applicable':
-            self.not_applicable += 1
-        elif tc.status == 'in_progress':
-            self.in_progress += 1
-        elif True:
-            assert (False)
 
     def get_or_add_suite(self, suite_name):
         if not suite_name:
@@ -311,10 +294,6 @@ class XmlWriter:
             suite_elem = self.dom.createElement('test_suite')
             suite_elem.setAttribute('name', test_suite.name)
             suite_elem.setAttribute('description', test_suite.description)
-            suite_elem.setAttribute('passed', str(test_suite.passed))
-            suite_elem.setAttribute('failed', str(test_suite.failed))
-            suite_elem.setAttribute('not_applicable', str(test_suite.not_applicable))
-            suite_elem.setAttribute('in_progress', str(test_suite.in_progress))
             suite_elem.setAttribute('start_time', str(test_suite.start_time))
             parent_node.appendChild(suite_elem)
 
