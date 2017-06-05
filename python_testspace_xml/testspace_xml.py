@@ -31,69 +31,62 @@ class AnnotationComment:
         self.name = name
         self.comment = comment
 
-
 class Annotation:
-    def __init__(self, level, description):
+    def __init__(self, name='unknown', level='info', description='',
+                 file_path=None, mime_type='text/plain'):
+        self.name = name
         self.level = level
         self.description = description
-        self.name = ''
+        self.mimeType = mime_type
+        self.filePath = file_path
         self.comments = []
 
     def add_comment(self, name, comment):
         comment = AnnotationComment(name, comment)
         self.comments.append(comment)
 
-
-class FileAnnotation(Annotation):
-    def __init__(self, file_path, level='info', description='',
-                 mime_type='text/plain', delete_file=True):
-        Annotation.__init__(self, level, description)
-        self.mimeType = mime_type
-        self.filePath = file_path
-        # self.filePath = os.path.abspath(FilePath)
-        # this covers the case where the path ends with a backslash
-        self.fileName = ntpath.basename(file_path)
-        self.deleteFile = delete_file
-
     def write_xml(self, parent_element, dom):
-        if not os.path.isfile(self.filePath):
-            # write as a warning text annotation
-            ta = TextAnnotation(self.name or self.fileName, self.level)
-            ta.description = 'File: ' + self.filePath + ' not found.'
-            for com in self.comments:
-                ta.comments.append(com)
-            ta.write_xml(parent_element, dom)
-            return
+        annotation = dom.createElement("annotation")
+        annotation.setAttribute("description", self.description)
+        annotation.setAttribute("level", self.level)
+        annotation.setAttribute("name", self.name)
 
-        # write as a file annotation
-        anno = dom.createElement("annotation")
-        anno.setAttribute("default_file_name", "true")
-        anno.setAttribute("link_file", "false")
-        anno.setAttribute("description", self.description)
-        anno.setAttribute("level", self.level)
-        anno.setAttribute("file", "file://" + self.filePath)
-        anno.setAttribute("mime_type", self.mimeType)
-        anno.setAttribute("name", self.name or self.fileName)
+        if self.filePath is not None:
+            if not os.path.isfile(self.filePath):
+                # write as a warning text annotation
+                ta = Annotation(self.fileName, level='error')
+                ta.description = 'File: ' + self.filePath + ' not found.'
+                for com in self.comments:
+                    ta.comments.append(com)
+                ta.write_xml(parent_element, dom)
+                return
+            else:
+                # write as a file annotation
+                annotation = dom.createElement("annotation")
+                annotation.setAttribute("link_file", "false")
+                annotation.setAttribute("description", self.description)
+                annotation.setAttribute("level", self.level)
+                annotation.setAttribute("file", "file://" + self.filePath)
+                annotation.setAttribute("mime_type", self.mimeType)
+                annotation.setAttribute("name", self.name)
 
-        if os.path.isfile(self.filePath):
-            # gzip the file
-            with open(self.filePath, 'rb') as inFile:
-                out_file = tempfile.TemporaryFile()
-                gzip_file_path = out_file.name
-                out_file.close()
-                out_file = gzip.open(gzip_file_path, 'wb')
-                out_file.writelines(inFile)
-                out_file.close()
-                inFile.close()
+                with open(self.filePath, 'rb') as inFile:
+                    out_file = tempfile.TemporaryFile()
+                    gzip_file_path = out_file.name
+                    out_file.close()
+                    out_file = gzip.open(gzip_file_path, 'wb')
+                    out_file.writelines(inFile)
+                    out_file.close()
+                    inFile.close()
 
-                # base64 the file
-                out_file = open(gzip_file_path, 'rb')
-                gzip_data = out_file.read()
-                b64_data = base64.standard_b64encode(gzip_data)
-                out_file.close()
-                os.remove(gzip_file_path)
-                cdata = dom.createCDATASection(b64_data)
-                anno.appendChild(cdata)
+                    # base64 the file
+                    out_file = open(gzip_file_path, 'rb')
+                    gzip_data = out_file.read()
+                    b64_data = base64.standard_b64encode(gzip_data)
+                    out_file.close()
+                    os.remove(gzip_file_path)
+                    cdata = dom.createCDATASection(b64_data.decode())
+                    annotation.appendChild(cdata)
 
         # add comments
         for c in self.comments:
@@ -101,32 +94,9 @@ class FileAnnotation(Annotation):
             c_elem.setAttribute("label", c.name)
             cdata = dom.createCDATASection(c.comment)
             c_elem.appendChild(cdata)
-            anno.appendChild(c_elem)
+            annotation.appendChild(c_elem)
 
-        parent_element.appendChild(anno)
-
-
-class TextAnnotation(Annotation):
-    def __init__(self, name, level='info', description=''):
-        Annotation.__init__(self, level, description)
-        self.name = name
-
-    def write_xml(self, parent_element, dom):
-        # write as a file annotation to the root suite
-        anno = dom.createElement("annotation")
-        anno.setAttribute("description", self.description)
-        anno.setAttribute("level", self.level)
-        anno.setAttribute("name", self.name)
-
-        # add comments
-        for c in self.comments:
-            c_elem = dom.createElement('comment')
-            c_elem.setAttribute("label", c.name)
-            cdata = dom.createCDATASection(c.comment)
-            c_elem.appendChild(cdata)
-            anno.appendChild(c_elem)
-
-        parent_element.appendChild(anno)
+        parent_element.appendChild(annotation)
 
 
 class TestCase:
@@ -170,13 +140,13 @@ class TestCase:
         self.custom_data.append(d)
         return d
 
-    def add_file_annotation(self, file_path, level='info', description='', mime_type='text/plain'):
-        fa = FileAnnotation(file_path, level, description, mime_type)
+    def add_file_annotation(self, name, level='info', description='', file_path=None, mime_type='text/plain'):
+        fa = Annotation(name, level, description, file_path, mime_type)
         self.annotations.append(fa)
         return fa
 
     def add_text_annotation(self, name, level='info', description=''):
-        ta = TextAnnotation(name, level, description)
+        ta = Annotation(name, level, description)
         self.annotations.append(ta)
         return ta
 

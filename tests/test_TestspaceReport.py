@@ -9,8 +9,10 @@ def create_simple_testspace_xml(self):
     testspace_report = testspace_xml.TestspaceReport()
     example_suite = testspace_report.get_or_add_suite('Example Suite')
     test_case = testspace_xml.TestCase('passing case 1', 'passed')
+    test_case.add_text_annotation('annotation example', description='description of annotation')
     example_suite.add_test_case(test_case)
     test_case = testspace_xml.TestCase('passing case 2', 'passed')
+    test_case.add_file_annotation('report_v1.xsd', file_path='tests/report_v1.xsd')
     example_suite.add_test_case(test_case)
     test_case = testspace_xml.TestCase('failing case 1', 'failed')
     example_suite.add_test_case(test_case)
@@ -33,7 +35,7 @@ class TestTestspaceXml:
         """ teardown any state that was previously setup with a call to
         setup_class.
         """
-        os.remove('testspace.xml')
+        # os.remove('testspace.xml')
 
     def test_number_testcases(self):
         test_cases = self.testspace_xml_root.xpath("//test_suite/test_case")
@@ -45,6 +47,14 @@ class TestTestspaceXml:
 
     def test_number_failed_testcases(self):
         test_cases = self.testspace_xml_root.xpath("//test_suite/test_case[@status='failed']")
+        assert len(test_cases) is 1
+
+    def test_number_annotations(self):
+        test_cases = self.testspace_xml_root.xpath("//test_suite/test_case/annotation")
+        assert len(test_cases) is 2
+
+    def test_number_file_annotations(self):
+        test_cases = self.testspace_xml_root.xpath("//test_suite/test_case/annotation[@file]")
         assert len(test_cases) is 1
 
     def test_validate_xsd(self):
