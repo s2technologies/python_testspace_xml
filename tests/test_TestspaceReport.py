@@ -14,7 +14,7 @@ def create_simple_testspace_xml(self):
     example_suite.add_test_case(test_case)
     test_case = testspace_xml.TestCase('failing case 1', 'failed')
     example_suite.add_test_case(test_case)
-    testspace_report.xml_file('testspace.xml')
+    testspace_report.write_xml('testspace.xml', to_pretty=True)
 
     xml_file = open('testspace.xml', 'r')
     self.testspace_xml_string = xml_file.read()

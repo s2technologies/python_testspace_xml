@@ -18,7 +18,7 @@ class CustomData:
         self.name = name
         self.value = value
 
-    def _write_xml(self, parent_element, dom):
+    def write_xml(self, parent_element, dom):
         d_elem = dom.createElement('custom_data')
         d_elem.setAttribute('name', self.name)
         cdata = dom.createCDATASection(self.value)
@@ -43,9 +43,6 @@ class Annotation:
         comment = AnnotationComment(name, comment)
         self.comments.append(comment)
 
-    def _clean_up(self):
-        pass
-
 
 class FileAnnotation(Annotation):
     def __init__(self, file_path, level='info', description='',
@@ -58,25 +55,21 @@ class FileAnnotation(Annotation):
         self.fileName = ntpath.basename(file_path)
         self.deleteFile = delete_file
 
-    def _clean_up(self):
-        if self.deleteFile and os.path.isfile(self.filePath):
-            os.remove(self.filePath)
-
-    def _write_xml(self, parent_element, dom):
+    def write_xml(self, parent_element, dom):
         if not os.path.isfile(self.filePath):
             # write as a warning text annotation
             ta = TextAnnotation(self.name or self.fileName, self.level)
             ta.description = 'File: ' + self.filePath + ' not found.'
             for com in self.comments:
                 ta.comments.append(com)
-            ta._write_xml(parent_element, dom)
+            ta.write_xml(parent_element, dom)
             return
 
         # write as a file annotation
         anno = dom.createElement("annotation")
         anno.setAttribute("default_file_name", "true")
         anno.setAttribute("link_file", "false")
-        anno.setAttribute("description", XmlWriter.fix_line_ends(self.description))
+        anno.setAttribute("description", self.description)
         anno.setAttribute("level", self.level)
         anno.setAttribute("file", "file://" + self.filePath)
         anno.setAttribute("mime_type", self.mimeType)
@@ -118,10 +111,10 @@ class TextAnnotation(Annotation):
         Annotation.__init__(self, level, description)
         self.name = name
 
-    def _write_xml(self, parent_element, dom):
+    def write_xml(self, parent_element, dom):
         # write as a file annotation to the root suite
         anno = dom.createElement("annotation")
-        anno.setAttribute("description", XmlWriter.fix_line_ends(self.description))
+        anno.setAttribute("description", self.description)
         anno.setAttribute("level", self.level)
         anno.setAttribute("name", self.name)
 
@@ -148,10 +141,6 @@ class TestCase:
         # path to file with additional diagnostics
         self.diagnostic_file = None
         self.meta_info = ""
-
-    def _clean_up(self):
-        for a in self.annotations:
-            a._clean_up()
 
     def set_description(self, description):
         self.description = description
@@ -195,7 +184,7 @@ class TestCase:
         self.status = status
 
     def set_start_time(self, gmt_string):
-        self._start_time = gmt_string
+        self.start_time = gmt_string
 
 
 class TestSuite:
@@ -210,14 +199,6 @@ class TestSuite:
         self.test_cases = []
         self.custom_data = []
         self.annotations = []
-
-    def _clean_up(self):
-        for s in self.sub_suites:
-            self.get_or_add_suite(s)._clean_up()
-        for tc in self.test_cases:
-            tc._clean_up()
-        for a in self.annotations:
-            a._clean_up()
 
     def add_test_case(self, tc):
         self.test_cases.append(tc)
@@ -242,8 +223,8 @@ class TestSuite:
         return d
 
     def add_file_annotation(self, file_path, level='info', description='',
-                            mime_type='text/plain', delete_file=True):
-        fa = FileAnnotation(file_path, level, description, mime_type, delete_file)
+                            mime_type='text/plain'):
+        fa = FileAnnotation(file_path, level, description, mime_type)
         self.annotations.append(fa)
         return fa
 
@@ -254,38 +235,25 @@ class TestSuite:
 
 
 class XmlWriter:
-    xmlTemplate = r'''
-    <?xml-stylesheet type="text/xsl" xml version="1.0" encoding="UTF-8?>
-    <reporter schema_version="1.0">
-    </reporter>
-    '''
-
     def __init__(self, report):
         self.report = report
-        self.dom = parseString(self.xmlTemplate)
+        self.dom = parseString('<reporter schema_version="1.0"/>')
 
-    @staticmethod
-    def fix_line_ends(s):
-        br = '<br/>'
-        ss = str(s)
-        sss = ss.replace('\r\n', br)
-        return sss.replace('\n', br)
-
-    def write(self, target_file_path=''):
+    def write(self, target_file_path='', to_pretty=False):
         doc_elem = self.dom.documentElement
         self._write_suite(doc_elem, self.report.get_root_suite())
         if target_file_path:
             with open(target_file_path, 'w') as f:
-                f.write(self.dom.toprettyxml())
+                if to_pretty:
+                    f.write(self.dom.toprettyxml())
+                else:
+                    f.write(self.dom.toxml())
                 f.flush()
         else:
-            sys.stdout.write(self.dom.toxml())
-        # print(self.dom.toprettyxml())
-        # print(self.dom.toxml())
-        self._clean_up()
-
-    def _clean_up(self):
-        self.report.get_root_suite()._clean_up()
+            if to_pretty:
+                sys.stdout.write(self.dom.toprettyxml())
+            else:
+                sys.stdout.write(self.dom.toxml())
 
     def _write_suite(self, parent_node, test_suite):
         # don't explicitly add suite for root suite
@@ -298,10 +266,10 @@ class XmlWriter:
             parent_node.appendChild(suite_elem)
 
         for a in test_suite.annotations:
-            a._write_xml(suite_elem, self.dom)
+            a.write_xml(suite_elem, self.dom)
 
         for d in test_suite.custom_data:
-            d._write_xml(suite_elem, self.dom)
+            d.write_xml(suite_elem, self.dom)
 
         for tc in test_suite.test_cases:
             self._write_test_case(suite_elem, tc)
@@ -314,17 +282,17 @@ class XmlWriter:
         elem_tc = self.dom.createElement('test_case')
 
         elem_tc.setAttribute('name', test_case.name)
-        elem_tc.setAttribute('description', self.fix_line_ends(test_case.description))
+        elem_tc.setAttribute('description', test_case.description)
         elem_tc.setAttribute('status', test_case.status)
         elem_tc.setAttribute('start_time', test_case.start_time)
         elem_tc.setAttribute('duration', str(test_case.duration))
         parent_node.appendChild(elem_tc)
 
         for a in test_case.annotations:
-            a._write_xml(elem_tc, self.dom)
+            a.write_xml(elem_tc, self.dom)
 
         for d in test_case.custom_data:
-            d._write_xml(elem_tc, self.dom)
+            d.write_xml(elem_tc, self.dom)
 
 
 class TestspaceReport(TestSuite):
@@ -335,10 +303,6 @@ class TestspaceReport(TestSuite):
     def get_root_suite(self):
         return self
 
-    def xml_file(self, outfile):
+    def write_xml(self, outfile, to_pretty=False):
         writer = XmlWriter(self)
-        writer.write(outfile)
-
-    def xml_console(self):
-        writer = XmlWriter(self)
-        writer.write()
+        writer.write(outfile, to_pretty)
