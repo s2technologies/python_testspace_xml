@@ -18,7 +18,7 @@ class CustomData:
         self.name = name
         self.value = value
 
-    def write_xml(self, parent_element, dom):
+    def _write_xml(self, parent_element, dom):
         d_elem = dom.createElement('custom_data')
         d_elem.setAttribute('name', self.name)
         cdata = dom.createCDATASection(self.value)
@@ -43,7 +43,7 @@ class Annotation:
         comment = AnnotationComment(name, comment)
         self.comments.append(comment)
 
-    def clean_up(self):
+    def _clean_up(self):
         pass
 
 
@@ -58,18 +58,18 @@ class FileAnnotation(Annotation):
         self.fileName = ntpath.basename(file_path)
         self.deleteFile = delete_file
 
-    def clean_up(self):
+    def _clean_up(self):
         if self.deleteFile and os.path.isfile(self.filePath):
             os.remove(self.filePath)
 
-    def write_xml(self, parent_element, dom):
+    def _write_xml(self, parent_element, dom):
         if not os.path.isfile(self.filePath):
             # write as a warning text annotation
             ta = TextAnnotation(self.name or self.fileName, self.level)
             ta.description = 'File: ' + self.filePath + ' not found.'
             for com in self.comments:
                 ta.comments.append(com)
-            ta.write_xml(parent_element, dom)
+            ta._write_xml(parent_element, dom)
             return
 
         # write as a file annotation
@@ -118,7 +118,7 @@ class TextAnnotation(Annotation):
         Annotation.__init__(self, level, description)
         self.name = name
 
-    def write_xml(self, parent_element, dom):
+    def _write_xml(self, parent_element, dom):
         # write as a file annotation to the root suite
         anno = dom.createElement("annotation")
         anno.setAttribute("description", XmlWriter.fix_line_ends(self.description))
@@ -149,9 +149,9 @@ class TestCase:
         self.diagnostic_file = None
         self.meta_info = ""
 
-    def clean_up(self):
+    def _clean_up(self):
         for a in self.annotations:
-            a.clean_up()
+            a._clean_up()
 
     def set_description(self, description):
         self.description = description
@@ -211,13 +211,13 @@ class TestSuite:
         self.custom_data = []
         self.annotations = []
 
-    def clean_up(self):
+    def _clean_up(self):
         for s in self.sub_suites:
-            self.get_or_add_suite(s).clean_up()
+            self.get_or_add_suite(s)._clean_up()
         for tc in self.test_cases:
-            tc.clean_up()
+            tc._clean_up()
         for a in self.annotations:
-            a.clean_up()
+            a._clean_up()
 
     def add_test_case(self, tc):
         self.test_cases.append(tc)
@@ -273,7 +273,7 @@ class XmlWriter:
 
     def write(self, target_file_path=''):
         doc_elem = self.dom.documentElement
-        self.write_suite(doc_elem, self.report.get_root_suite())
+        self._write_suite(doc_elem, self.report.get_root_suite())
         if target_file_path:
             with open(target_file_path, 'w') as f:
                 f.write(self.dom.toprettyxml())
@@ -282,12 +282,12 @@ class XmlWriter:
             sys.stdout.write(self.dom.toxml())
         # print(self.dom.toprettyxml())
         # print(self.dom.toxml())
-        self.clean_up()
+        self._clean_up()
 
-    def clean_up(self):
-        self.report.get_root_suite().clean_up()
+    def _clean_up(self):
+        self.report.get_root_suite()._clean_up()
 
-    def write_suite(self, parent_node, test_suite):
+    def _write_suite(self, parent_node, test_suite):
         # don't explicitly add suite for root suite
         suite_elem = parent_node
         if not test_suite.is_root_suite:
@@ -298,19 +298,19 @@ class XmlWriter:
             parent_node.appendChild(suite_elem)
 
         for a in test_suite.annotations:
-            a.write_xml(suite_elem, self.dom)
+            a._write_xml(suite_elem, self.dom)
 
         for d in test_suite.custom_data:
-            d.write_xml(suite_elem, self.dom)
+            d._write_xml(suite_elem, self.dom)
 
         for tc in test_suite.test_cases:
-            self.write_test_case(suite_elem, tc)
+            self._write_test_case(suite_elem, tc)
 
         # write child suites, sort by name
         for ts in sorted(test_suite.sub_suites.keys()):
-            self.write_suite(suite_elem, test_suite.sub_suites[ts])
+            self._write_suite(suite_elem, test_suite.sub_suites[ts])
 
-    def write_test_case(self, parent_node, test_case):
+    def _write_test_case(self, parent_node, test_case):
         elem_tc = self.dom.createElement('test_case')
 
         elem_tc.setAttribute('name', test_case.name)
@@ -321,10 +321,10 @@ class XmlWriter:
         parent_node.appendChild(elem_tc)
 
         for a in test_case.annotations:
-            a.write_xml(elem_tc, self.dom)
+            a._write_xml(elem_tc, self.dom)
 
         for d in test_case.custom_data:
-            d.write_xml(elem_tc, self.dom)
+            d._write_xml(elem_tc, self.dom)
 
 
 class TestspaceReport(TestSuite):
