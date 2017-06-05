@@ -267,6 +267,6 @@ class TestspaceReport(TestSuite):
     def get_root_suite(self):
         return self
 
-    def write_xml(self, outfile, to_pretty=False):
+    def write_xml(self, outfile=None, to_pretty=False):
         writer = XmlWriter(self)
         writer.write(outfile, to_pretty)
