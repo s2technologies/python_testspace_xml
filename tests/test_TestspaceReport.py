@@ -22,6 +22,7 @@ def create_simple_testspace_xml(self):
 
     self.testspace_xml_root = etree.fromstring(self.testspace_xml_string)
 
+
 class TestTestspaceXml:
     @pytest.fixture(autouse=True)
     def setup_class(self):
