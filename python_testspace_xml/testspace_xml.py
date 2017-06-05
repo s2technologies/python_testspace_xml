@@ -1,11 +1,11 @@
 from __future__ import print_function
 import base64
 import gzip
-import ntpath
 import os
+import io
+from io import BytesIO
 import os.path
 import sys
-import tempfile
 from xml.dom.minidom import parseString
 
 
@@ -30,6 +30,7 @@ class AnnotationComment:
     def __init__(self, name, comment):
         self.name = name
         self.comment = comment
+
 
 class Annotation:
     def __init__(self, name='unknown', level='info', description='',
@@ -70,21 +71,13 @@ class Annotation:
                 annotation.setAttribute("mime_type", self.mimeType)
                 annotation.setAttribute("name", self.name)
 
-                with open(self.filePath, 'rb') as inFile:
-                    out_file = tempfile.TemporaryFile()
-                    gzip_file_path = out_file.name
-                    out_file.close()
-                    out_file = gzip.open(gzip_file_path, 'wb')
-                    out_file.writelines(inFile)
-                    out_file.close()
-                    inFile.close()
-
-                    # base64 the file
-                    out_file = open(gzip_file_path, 'rb')
-                    gzip_data = out_file.read()
+                with io.open(self.filePath, 'rb') as inFile:
+                    out = BytesIO()
+                    with gzip.GzipFile(fileobj=out, mode="wb") as f:
+                        f.writelines(inFile)
+                    f.close()
+                    gzip_data = out.getvalue()
                     b64_data = base64.standard_b64encode(gzip_data)
-                    out_file.close()
-                    os.remove(gzip_file_path)
                     cdata = dom.createCDATASection(b64_data.decode())
                     annotation.appendChild(cdata)
 
@@ -140,7 +133,8 @@ class TestCase:
         self.custom_data.append(d)
         return d
 
-    def add_file_annotation(self, name, level='info', description='', file_path=None, mime_type='text/plain'):
+    def add_file_annotation(self, name, level='info', description='',
+                            file_path=None, mime_type='text/plain'):
         fa = Annotation(name, level, description, file_path, mime_type)
         self.annotations.append(fa)
         return fa
@@ -192,14 +186,14 @@ class TestSuite:
         self.custom_data.append(d)
         return d
 
-    def add_file_annotation(self, file_path, level='info', description='',
-                            mime_type='text/plain'):
-        fa = FileAnnotation(file_path, level, description, mime_type)
+    def add_file_annotation(self, name, level='info', description='',
+                            file_path=None, mime_type='text/plain'):
+        fa = Annotation(name, level, description, file_path, mime_type)
         self.annotations.append(fa)
         return fa
 
     def add_text_annotation(self, name, level='info', description=''):
-        ta = TextAnnotation(name, level, description)
+        ta = Annotation(name, level, description)
         self.annotations.append(ta)
         return ta
 
