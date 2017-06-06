@@ -39,7 +39,7 @@ class Annotation:
         self.level = level
         self.description = description
         self.mimeType = mime_type
-        self.filePath = file_path
+        self.file_path = file_path
         self.comments = []
 
     def add_comment(self, name, comment):
@@ -52,11 +52,11 @@ class Annotation:
         annotation.setAttribute("level", self.level)
         annotation.setAttribute("name", self.name)
 
-        if self.filePath is not None:
-            if not os.path.isfile(self.filePath):
+        if self.file_path is not None:
+            if not os.path.isfile(self.file_path):
                 # write as a warning text annotation
-                ta = Annotation(self.fileName, level='error')
-                ta.description = 'File: ' + self.filePath + ' not found.'
+                ta = Annotation(self.file_path, level='error')
+                ta.description = 'File: ' + self.file_path + ' not found.'
                 for com in self.comments:
                     ta.comments.append(com)
                 ta.write_xml(parent_element, dom)
@@ -67,11 +67,11 @@ class Annotation:
                 annotation.setAttribute("link_file", "false")
                 annotation.setAttribute("description", self.description)
                 annotation.setAttribute("level", self.level)
-                annotation.setAttribute("file", "file://" + self.filePath)
+                annotation.setAttribute("file", "file://" + self.file_path)
                 annotation.setAttribute("mime_type", self.mimeType)
                 annotation.setAttribute("name", self.name)
 
-                with io.open(self.filePath, 'rb') as inFile:
+                with io.open(self.file_path, 'rb') as inFile:
                     out = BytesIO()
                     with gzip.GzipFile(fileobj=out, mode="wb") as f:
                         f.writelines(inFile)
@@ -101,9 +101,6 @@ class TestCase:
         self.annotations = []
         self.start_time = ""
         self.duration = 0
-        # path to file with additional diagnostics
-        self.diagnostic_file = None
-        self.meta_info = ""
 
     def set_description(self, description):
         self.description = description
@@ -111,20 +108,26 @@ class TestCase:
     def set_duration_ms(self, duration):
         self.duration = duration
 
-    def fail(self, reason):
+    def set_status(self, status):
+        self.status = status
+
+    def set_start_time(self, gmt_string):
+        self.start_time = gmt_string
+
+    def add_fail_annotation(self, message):
         self.status = 'failed'
         ta = self.add_text_annotation('FAIL', 'error')
-        ta.description = reason
+        ta.description = message
 
-    def note_info(self, message):
+    def add_info_annotation(self, message):
         ta = self.add_text_annotation('Info', 'info')
         ta.description = message
 
-    def note_warn(self, message):
+    def add_warning_annotation(self, message):
         ta = self.add_text_annotation('Warning', 'warn')
         ta.description = message
 
-    def note_error(self, message):
+    def add_error_annotation(self, message):
         ta = self.add_text_annotation('Error', 'error')
         ta.description = message
 
@@ -144,16 +147,9 @@ class TestCase:
         self.annotations.append(ta)
         return ta
 
-    def set_status(self, status):
-        self.status = status
-
-    def set_start_time(self, gmt_string):
-        self.start_time = gmt_string
-
 
 class TestSuite:
     def __init__(self, name):
-
         # optional sub-suites
         self.sub_suites = {}
         self.is_root_suite = False
@@ -168,15 +164,15 @@ class TestSuite:
         self.test_cases.append(tc)
         return tc
 
-    def get_or_add_suite(self, suite_name):
+    def get_or_add_test_suite(self, suite_name):
         if not suite_name:
             # write under root suite
-            return self.get_or_add_suite('uncategorized')
+            return self.get_or_add_test_suite('uncategorized')
         if suite_name in self.sub_suites.keys():
             return self.sub_suites[suite_name]
-        return self.add_suite(suite_name)
+        return self.add_test_suite(suite_name)
 
-    def add_suite(self, name):
+    def add_test_suite(self, name):
         new_suite = TestSuite(name)
         self.sub_suites[str(name)] = new_suite
         return new_suite
@@ -203,7 +199,7 @@ class XmlWriter:
         self.report = report
         self.dom = parseString('<reporter schema_version="1.0"/>')
 
-    def write(self, target_file_path='', to_pretty=False):
+    def write(self, target_file_path, to_pretty=False):
         doc_elem = self.dom.documentElement
         self._write_suite(doc_elem, self.report.get_root_suite())
         if target_file_path:

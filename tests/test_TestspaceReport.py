@@ -1,13 +1,14 @@
-from python_testspace_xml import testspace_xml
 import pytest
 import os
 from lxml import etree, objectify
 from lxml.etree import XMLSyntaxError
 
+from python_testspace_xml import testspace_xml
+
 
 def create_simple_testspace_xml(self):
     testspace_report = testspace_xml.TestspaceReport()
-    example_suite = testspace_report.get_or_add_suite('Example Suite')
+    example_suite = testspace_report.get_or_add_test_suite('Example Suite')
     test_case = testspace_xml.TestCase('passing case 1', 'passed')
     test_case.add_text_annotation('annotation example', description='description of annotation')
     example_suite.add_test_case(test_case)
