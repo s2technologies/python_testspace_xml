@@ -1,11 +1,11 @@
 from __future__ import print_function
 import base64
 import gzip
-import ntpath
 import os
+import io
+from io import BytesIO
 import os.path
 import sys
-import tempfile
 from xml.dom.minidom import parseString
 
 
@@ -18,7 +18,7 @@ class CustomData:
         self.name = name
         self.value = value
 
-    def _write_xml(self, parent_element, dom):
+    def write_xml(self, parent_element, dom):
         d_elem = dom.createElement('custom_data')
         d_elem.setAttribute('name', self.name)
         cdata = dom.createCDATASection(self.value)
@@ -33,74 +33,47 @@ class AnnotationComment:
 
 
 class Annotation:
-    def __init__(self, level, description):
+    def __init__(self, name='unknown', level='info', description='',
+                 file_path=None, mime_type='text/plain'):
+        self.name = name
         self.level = level
         self.description = description
-        self.name = ''
+        self.mimeType = mime_type
+        self.file_path = file_path
         self.comments = []
 
     def add_comment(self, name, comment):
         comment = AnnotationComment(name, comment)
         self.comments.append(comment)
 
-    def _clean_up(self):
-        pass
+    def write_xml(self, parent_element, dom):
+        annotation = dom.createElement("annotation")
+        annotation.setAttribute("description", self.description)
+        annotation.setAttribute("level", self.level)
+        annotation.setAttribute("name", self.name)
 
-
-class FileAnnotation(Annotation):
-    def __init__(self, file_path, level='info', description='',
-                 mime_type='text/plain', delete_file=True):
-        Annotation.__init__(self, level, description)
-        self.mimeType = mime_type
-        self.filePath = file_path
-        # self.filePath = os.path.abspath(FilePath)
-        # this covers the case where the path ends with a backslash
-        self.fileName = ntpath.basename(file_path)
-        self.deleteFile = delete_file
-
-    def _clean_up(self):
-        if self.deleteFile and os.path.isfile(self.filePath):
-            os.remove(self.filePath)
-
-    def _write_xml(self, parent_element, dom):
-        if not os.path.isfile(self.filePath):
-            # write as a warning text annotation
-            ta = TextAnnotation(self.name or self.fileName, self.level)
-            ta.description = 'File: ' + self.filePath + ' not found.'
-            for com in self.comments:
-                ta.comments.append(com)
-            ta._write_xml(parent_element, dom)
-            return
-
-        # write as a file annotation
-        anno = dom.createElement("annotation")
-        anno.setAttribute("default_file_name", "true")
-        anno.setAttribute("link_file", "false")
-        anno.setAttribute("description", XmlWriter.fix_line_ends(self.description))
-        anno.setAttribute("level", self.level)
-        anno.setAttribute("file", "file://" + self.filePath)
-        anno.setAttribute("mime_type", self.mimeType)
-        anno.setAttribute("name", self.name or self.fileName)
-
-        if os.path.isfile(self.filePath):
-            # gzip the file
-            with open(self.filePath, 'rb') as inFile:
-                out_file = tempfile.TemporaryFile()
-                gzip_file_path = out_file.name
-                out_file.close()
-                out_file = gzip.open(gzip_file_path, 'wb')
-                out_file.writelines(inFile)
-                out_file.close()
-                inFile.close()
-
-                # base64 the file
-                out_file = open(gzip_file_path, 'rb')
-                gzip_data = out_file.read()
-                b64_data = base64.standard_b64encode(gzip_data)
-                out_file.close()
-                os.remove(gzip_file_path)
-                cdata = dom.createCDATASection(b64_data)
-                anno.appendChild(cdata)
+        if self.file_path is not None:
+            if not os.path.isfile(self.file_path):
+                ta = Annotation(self.file_path, level='error')
+                ta.description = 'File: ' + self.file_path + ' not found.'
+                for com in self.comments:
+                    ta.comments.append(com)
+                ta.write_xml(parent_element, dom)
+                return
+            else:
+                annotation.setAttribute("link_file", "false")
+                annotation.setAttribute("file", "file://" + self.file_path)
+                annotation.setAttribute("mime_type", self.mimeType)
+                with io.open(self.file_path, 'rb') as inFile:
+                    out = BytesIO()
+                    with gzip.GzipFile(fileobj=out, mode="wb") as f:
+                        f.writelines(inFile)
+                    f.close()
+                    gzip_data = out.getvalue()
+                    b64_data = base64.b64encode(gzip_data)
+                    b64_data_string = b64_data.decode()
+                    cdata = dom.createCDATASection(b64_data_string)
+                    annotation.appendChild(cdata)
 
         # add comments
         for c in self.comments:
@@ -108,32 +81,9 @@ class FileAnnotation(Annotation):
             c_elem.setAttribute("label", c.name)
             cdata = dom.createCDATASection(c.comment)
             c_elem.appendChild(cdata)
-            anno.appendChild(c_elem)
+            annotation.appendChild(c_elem)
 
-        parent_element.appendChild(anno)
-
-
-class TextAnnotation(Annotation):
-    def __init__(self, name, level='info', description=''):
-        Annotation.__init__(self, level, description)
-        self.name = name
-
-    def _write_xml(self, parent_element, dom):
-        # write as a file annotation to the root suite
-        anno = dom.createElement("annotation")
-        anno.setAttribute("description", XmlWriter.fix_line_ends(self.description))
-        anno.setAttribute("level", self.level)
-        anno.setAttribute("name", self.name)
-
-        # add comments
-        for c in self.comments:
-            c_elem = dom.createElement('comment')
-            c_elem.setAttribute("label", c.name)
-            cdata = dom.createCDATASection(c.comment)
-            c_elem.appendChild(cdata)
-            anno.appendChild(c_elem)
-
-        parent_element.appendChild(anno)
+        parent_element.appendChild(annotation)
 
 
 class TestCase:
@@ -145,13 +95,6 @@ class TestCase:
         self.annotations = []
         self.start_time = ""
         self.duration = 0
-        # path to file with additional diagnostics
-        self.diagnostic_file = None
-        self.meta_info = ""
-
-    def _clean_up(self):
-        for a in self.annotations:
-            a._clean_up()
 
     def set_description(self, description):
         self.description = description
@@ -159,20 +102,26 @@ class TestCase:
     def set_duration_ms(self, duration):
         self.duration = duration
 
-    def fail(self, reason):
+    def set_status(self, status):
+        self.status = status
+
+    def set_start_time(self, gmt_string):
+        self.start_time = gmt_string
+
+    def fail(self, message):
         self.status = 'failed'
         ta = self.add_text_annotation('FAIL', 'error')
-        ta.description = reason
+        ta.description = message
 
-    def note_info(self, message):
+    def add_info_annotation(self, message):
         ta = self.add_text_annotation('Info', 'info')
         ta.description = message
 
-    def note_warn(self, message):
+    def add_warning_annotation(self, message):
         ta = self.add_text_annotation('Warning', 'warn')
         ta.description = message
 
-    def note_error(self, message):
+    def add_error_annotation(self, message):
         ta = self.add_text_annotation('Error', 'error')
         ta.description = message
 
@@ -181,26 +130,20 @@ class TestCase:
         self.custom_data.append(d)
         return d
 
-    def add_file_annotation(self, file_path, level='info', description='', mime_type='text/plain'):
-        fa = FileAnnotation(file_path, level, description, mime_type)
+    def add_file_annotation(self, name, level='info', description='',
+                            file_path=None, mime_type='text/plain'):
+        fa = Annotation(name, level, description, file_path, mime_type)
         self.annotations.append(fa)
         return fa
 
     def add_text_annotation(self, name, level='info', description=''):
-        ta = TextAnnotation(name, level, description)
+        ta = Annotation(name, level, description)
         self.annotations.append(ta)
         return ta
-
-    def set_status(self, status):
-        self.status = status
-
-    def set_start_time(self, gmt_string):
-        self._start_time = gmt_string
 
 
 class TestSuite:
     def __init__(self, name):
-
         # optional sub-suites
         self.sub_suites = {}
         self.is_root_suite = False
@@ -211,27 +154,19 @@ class TestSuite:
         self.custom_data = []
         self.annotations = []
 
-    def _clean_up(self):
-        for s in self.sub_suites:
-            self.get_or_add_suite(s)._clean_up()
-        for tc in self.test_cases:
-            tc._clean_up()
-        for a in self.annotations:
-            a._clean_up()
-
     def add_test_case(self, tc):
         self.test_cases.append(tc)
         return tc
 
-    def get_or_add_suite(self, suite_name):
+    def get_or_add_test_suite(self, suite_name):
         if not suite_name:
             # write under root suite
-            return self.get_or_add_suite('uncategorized')
+            return self.get_or_add_test_suite('uncategorized')
         if suite_name in self.sub_suites.keys():
             return self.sub_suites[suite_name]
-        return self.add_suite(suite_name)
+        return self.add_test_suite(suite_name)
 
-    def add_suite(self, name):
+    def add_test_suite(self, name):
         new_suite = TestSuite(name)
         self.sub_suites[str(name)] = new_suite
         return new_suite
@@ -241,51 +176,38 @@ class TestSuite:
         self.custom_data.append(d)
         return d
 
-    def add_file_annotation(self, file_path, level='info', description='',
-                            mime_type='text/plain', delete_file=True):
-        fa = FileAnnotation(file_path, level, description, mime_type, delete_file)
+    def add_file_annotation(self, name, level='info', description='',
+                            file_path=None, mime_type='text/plain'):
+        fa = Annotation(name, level, description, file_path, mime_type)
         self.annotations.append(fa)
         return fa
 
     def add_text_annotation(self, name, level='info', description=''):
-        ta = TextAnnotation(name, level, description)
+        ta = Annotation(name, level, description)
         self.annotations.append(ta)
         return ta
 
 
 class XmlWriter:
-    xmlTemplate = r'''
-    <?xml-stylesheet type="text/xsl" xml version="1.0" encoding="UTF-8?>
-    <reporter schema_version="1.0">
-    </reporter>
-    '''
-
     def __init__(self, report):
         self.report = report
-        self.dom = parseString(self.xmlTemplate)
+        self.dom = parseString('<reporter schema_version="1.0"/>')
 
-    @staticmethod
-    def fix_line_ends(s):
-        br = '<br/>'
-        ss = str(s)
-        sss = ss.replace('\r\n', br)
-        return sss.replace('\n', br)
-
-    def write(self, target_file_path=''):
+    def write(self, target_file_path, to_pretty=False):
         doc_elem = self.dom.documentElement
         self._write_suite(doc_elem, self.report.get_root_suite())
         if target_file_path:
             with open(target_file_path, 'w') as f:
-                f.write(self.dom.toprettyxml())
+                if to_pretty:
+                    f.write(self.dom.toprettyxml())
+                else:
+                    f.write(self.dom.toxml())
                 f.flush()
         else:
-            sys.stdout.write(self.dom.toxml())
-        # print(self.dom.toprettyxml())
-        # print(self.dom.toxml())
-        self._clean_up()
-
-    def _clean_up(self):
-        self.report.get_root_suite()._clean_up()
+            if to_pretty:
+                sys.stdout.write(self.dom.toprettyxml())
+            else:
+                sys.stdout.write(self.dom.toxml())
 
     def _write_suite(self, parent_node, test_suite):
         # don't explicitly add suite for root suite
@@ -298,10 +220,10 @@ class XmlWriter:
             parent_node.appendChild(suite_elem)
 
         for a in test_suite.annotations:
-            a._write_xml(suite_elem, self.dom)
+            a.write_xml(suite_elem, self.dom)
 
         for d in test_suite.custom_data:
-            d._write_xml(suite_elem, self.dom)
+            d.write_xml(suite_elem, self.dom)
 
         for tc in test_suite.test_cases:
             self._write_test_case(suite_elem, tc)
@@ -314,17 +236,17 @@ class XmlWriter:
         elem_tc = self.dom.createElement('test_case')
 
         elem_tc.setAttribute('name', test_case.name)
-        elem_tc.setAttribute('description', self.fix_line_ends(test_case.description))
+        elem_tc.setAttribute('description', test_case.description)
         elem_tc.setAttribute('status', test_case.status)
         elem_tc.setAttribute('start_time', test_case.start_time)
         elem_tc.setAttribute('duration', str(test_case.duration))
         parent_node.appendChild(elem_tc)
 
         for a in test_case.annotations:
-            a._write_xml(elem_tc, self.dom)
+            a.write_xml(elem_tc, self.dom)
 
         for d in test_case.custom_data:
-            d._write_xml(elem_tc, self.dom)
+            d.write_xml(elem_tc, self.dom)
 
 
 class TestspaceReport(TestSuite):
@@ -335,10 +257,6 @@ class TestspaceReport(TestSuite):
     def get_root_suite(self):
         return self
 
-    def xml_file(self, outfile):
+    def write_xml(self, outfile=None, to_pretty=False):
         writer = XmlWriter(self)
-        writer.write(outfile)
-
-    def xml_console(self):
-        writer = XmlWriter(self)
-        writer.write()
+        writer.write(outfile, to_pretty)
