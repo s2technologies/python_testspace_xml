@@ -54,7 +54,6 @@ class Annotation:
 
         if self.file_path is not None:
             if not os.path.isfile(self.file_path):
-                # write as a warning text annotation
                 ta = Annotation(self.file_path, level='error')
                 ta.description = 'File: ' + self.file_path + ' not found.'
                 for com in self.comments:
@@ -71,8 +70,9 @@ class Annotation:
                         f.writelines(inFile)
                     f.close()
                     gzip_data = out.getvalue()
-                    b64_data = base64.standard_b64encode(gzip_data)
-                    cdata = dom.createCDATASection(b64_data.decode())
+                    b64_data = base64.b64encode(gzip_data)
+                    b64_data_string = b64_data.decode()
+                    cdata = dom.createCDATASection(b64_data_string)
                     annotation.appendChild(cdata)
 
         # add comments
@@ -108,7 +108,7 @@ class TestCase:
     def set_start_time(self, gmt_string):
         self.start_time = gmt_string
 
-    def add_fail_annotation(self, message):
+    def fail(self, message):
         self.status = 'failed'
         ta = self.add_text_annotation('FAIL', 'error')
         ta.description = message
