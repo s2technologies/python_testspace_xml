@@ -62,15 +62,9 @@ class Annotation:
                 ta.write_xml(parent_element, dom)
                 return
             else:
-                # write as a file annotation
-                annotation = dom.createElement("annotation")
                 annotation.setAttribute("link_file", "false")
-                annotation.setAttribute("description", self.description)
-                annotation.setAttribute("level", self.level)
                 annotation.setAttribute("file", "file://" + self.file_path)
                 annotation.setAttribute("mime_type", self.mimeType)
-                annotation.setAttribute("name", self.name)
-
                 with io.open(self.file_path, 'rb') as inFile:
                     out = BytesIO()
                     with gzip.GzipFile(fileobj=out, mode="wb") as f:
