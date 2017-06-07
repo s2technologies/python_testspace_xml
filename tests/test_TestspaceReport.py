@@ -40,7 +40,7 @@ class TestTestspaceXml:
         """ teardown any state that was previously setup with a call to
         setup_class.
         """
-        #os.remove('testspace.xml')
+        os.remove('testspace.xml')
 
     def test_number_testcases(self):
         test_cases = self.testspace_xml_root.xpath("//test_suite/test_case")
