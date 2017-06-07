@@ -149,6 +149,7 @@ class TestSuite:
         self.is_root_suite = False
         self.name = name
         self.description = ''
+        self.duration = 0
         self.start_time = ''
         self.test_cases = []
         self.custom_data = []
@@ -187,6 +188,9 @@ class TestSuite:
         self.annotations.append(ta)
         return ta
 
+    def set_duration_ms(self, duration):
+        self.duration = duration
+
 
 class XmlWriter:
     def __init__(self, report):
@@ -218,6 +222,9 @@ class XmlWriter:
             suite_elem.setAttribute('description', test_suite.description)
             suite_elem.setAttribute('start_time', str(test_suite.start_time))
             parent_node.appendChild(suite_elem)
+            if test_suite.duration > 0:
+                suite_elem.setAttribute('duration', test_suite.duration)
+
 
         for a in test_suite.annotations:
             a.write_xml(suite_elem, self.dom)
