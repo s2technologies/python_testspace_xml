@@ -40,7 +40,23 @@ class Annotation:
         self.description = description
         self.mimeType = mime_type
         self.file_path = file_path
+        self.b64_file = ''
         self.comments = []
+
+        if self.file_path is not None:
+            if not os.path.isfile(self.file_path):
+                ta = Annotation(self.file_path, level='error')
+                ta.description = 'File: ' + self.file_path + ' not found.'
+                self.comments.append(ta)
+            else:
+                with io.open(self.file_path, 'rb') as inFile:
+                    out = BytesIO()
+                    with gzip.GzipFile(fileobj=out, mode="wb") as f:
+                        f.writelines(inFile)
+                    f.close()
+                    gzip_data = out.getvalue()
+                    b64_data = base64.b64encode(gzip_data)
+                    self.b64_file = b64_data.decode()
 
     def add_comment(self, name, comment):
         comment = AnnotationComment(name, comment)
@@ -53,27 +69,11 @@ class Annotation:
         annotation.setAttribute("name", self.name)
 
         if self.file_path is not None:
-            if not os.path.isfile(self.file_path):
-                ta = Annotation(self.file_path, level='error')
-                ta.description = 'File: ' + self.file_path + ' not found.'
-                for com in self.comments:
-                    ta.comments.append(com)
-                ta.write_xml(parent_element, dom)
-                return
-            else:
-                annotation.setAttribute("link_file", "false")
-                annotation.setAttribute("file", "file://" + self.file_path)
-                annotation.setAttribute("mime_type", self.mimeType)
-                with io.open(self.file_path, 'rb') as inFile:
-                    out = BytesIO()
-                    with gzip.GzipFile(fileobj=out, mode="wb") as f:
-                        f.writelines(inFile)
-                    f.close()
-                    gzip_data = out.getvalue()
-                    b64_data = base64.b64encode(gzip_data)
-                    b64_data_string = b64_data.decode()
-                    cdata = dom.createCDATASection(b64_data_string)
-                    annotation.appendChild(cdata)
+            annotation.setAttribute("link_file", "false")
+            annotation.setAttribute("file", "file://" + self.file_path)
+            annotation.setAttribute("mime_type", self.mimeType)
+            cdata = dom.createCDATASection(self.b64_file)
+            annotation.appendChild(cdata)
 
         # add comments
         for c in self.comments:
