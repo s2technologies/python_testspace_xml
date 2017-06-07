@@ -258,7 +258,6 @@ class XmlWriter:
             if test_suite.duration > 0:
                 suite_elem.setAttribute('duration', test_suite.duration)
 
-
         for a in test_suite.annotations:
             a.write_xml(suite_elem, self.dom)
 
