@@ -14,7 +14,7 @@ def create_simple_testspace_xml(self):
     example_suite.add_test_case(test_case)
     test_case = testspace_xml.TestCase('passing case 2', 'passed')
     test_case.add_file_annotation('report_v1.xsd', file_path='tests/report_v1.xsd')
-    test_case.add_file_link_annotation(file_path='\\\\machine/folder')
+    test_case.add_link_annotation(file_path=r'\\machine/public')
     example_suite.add_test_case(test_case)
     test_case = testspace_xml.TestCase('failing case 1', 'failed')
     example_suite.add_test_case(test_case)
