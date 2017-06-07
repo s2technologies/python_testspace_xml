@@ -40,7 +40,7 @@ class Annotation:
         self.description = description
         self.mimeType = mime_type
         self.file_path = file_path
-        self.file_b64_data = None
+        self.gzip_data = None
         self.comments = []
 
         if self.file_path is not None:
@@ -54,9 +54,7 @@ class Annotation:
                     with gzip.GzipFile(fileobj=out, mode="wb") as f:
                         f.writelines(inFile)
                     f.close()
-                    gzip_data = out.getvalue()
-                    b64_data = base64.b64encode(gzip_data)
-                    self.file_b64_data = b64_data.decode()
+                    self.gzip_data = out.getvalue()
 
     def add_comment(self, name, comment):
         comment = AnnotationComment(name, comment)
@@ -72,8 +70,10 @@ class Annotation:
             annotation.setAttribute("link_file", "false")
             annotation.setAttribute("file", "file://" + self.file_path)
             annotation.setAttribute("mime_type", self.mimeType)
-            if self.file_b64_data is not None:
-                cdata = dom.createCDATASection(self.file_b64_data)
+            if self.gzip_data is not None:
+                b64_data = base64.b64encode(self.gzip_data)
+                b64_data_string = b64_data.decode()
+                cdata = dom.createCDATASection(b64_data_string)
                 annotation.appendChild(cdata)
 
         # add comments
