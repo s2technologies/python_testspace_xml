@@ -14,6 +14,7 @@ def create_simple_testspace_xml(self):
     example_suite.add_test_case(test_case)
     test_case = testspace_xml.TestCase('passing case 2', 'passed')
     test_case.add_file_annotation('report_v1.xsd', file_path='tests/report_v1.xsd')
+    test_case.add_link_annotation(file_path=r'\\machine/public')
     example_suite.add_test_case(test_case)
     test_case = testspace_xml.TestCase('failing case 1', 'failed')
     example_suite.add_test_case(test_case)
@@ -52,11 +53,11 @@ class TestTestspaceXml:
 
     def test_number_annotations(self):
         test_cases = self.testspace_xml_root.xpath("//test_suite/test_case/annotation")
-        assert len(test_cases) is 2
+        assert len(test_cases) is 3
 
     def test_number_file_annotations(self):
         test_cases = self.testspace_xml_root.xpath("//test_suite/test_case/annotation[@file]")
-        assert len(test_cases) is 1
+        assert len(test_cases) is 2
 
     def test_validate_xsd(self):
         assert xml_validator(self.testspace_xml_string, 'tests/report_v1.xsd')

@@ -1,6 +1,7 @@
 from __future__ import print_function
 import base64
 import gzip
+import re
 import os
 import io
 from io import BytesIO
@@ -33,18 +34,45 @@ class AnnotationComment:
 
 
 class Annotation:
-    def __init__(self, name='unknown', level='info', description='',
-                 file_path=None, mime_type='text/plain'):
+    def __init__(self, name='unknown', level='info', description=''):
         self.name = name
         self.level = level
         self.description = description
-        self.mimeType = mime_type
-        self.file_path = file_path
+        self.mimeType = None
+        self.file_path = None
+        self.link_file = False
+        self.gzip_data = None
         self.comments = []
 
     def add_comment(self, name, comment):
         comment = AnnotationComment(name, comment)
         self.comments.append(comment)
+
+    def add_file_annotation(self, file_path=None, mime_type='text/plain'):
+        self.file_path = file_path
+        self.mimeType = mime_type
+        if file_path is not None:
+            if not os.path.isfile(self.file_path):
+                ta = Annotation(self.file_path, level='error')
+                ta.description = 'File: ' + self.file_path + ' not found.'
+                self.comments.append(ta)
+            else:
+                with io.open(self.file_path, 'rb') as inFile:
+                    out = BytesIO()
+                    with gzip.GzipFile(fileobj=out, mode="wb") as f:
+                        f.writelines(inFile)
+                    f.close()
+                    self.gzip_data = out.getvalue()
+
+    def add_link_annotation(self, file_path=None):
+        self.link_file = True
+        match_path = re.search(r'\\\w', file_path)
+        if match_path and file_path:
+            self.file_path = "file://" + file_path.replace('\\', '/')
+        else:
+            ta = Annotation(self.file_path, level='error')
+            ta.description = 'Invalid network file path given:' + file_path
+            self.comments.append(ta)
 
     def write_xml(self, parent_element, dom):
         annotation = dom.createElement("annotation")
@@ -53,24 +81,15 @@ class Annotation:
         annotation.setAttribute("name", self.name)
 
         if self.file_path is not None:
-            if not os.path.isfile(self.file_path):
-                ta = Annotation(self.file_path, level='error')
-                ta.description = 'File: ' + self.file_path + ' not found.'
-                for com in self.comments:
-                    ta.comments.append(com)
-                ta.write_xml(parent_element, dom)
-                return
+            if self.link_file:
+                annotation.setAttribute("link_file", "true")
+                annotation.setAttribute("file", self.file_path)
             else:
                 annotation.setAttribute("link_file", "false")
-                annotation.setAttribute("file", "file://" + self.file_path)
+                annotation.setAttribute("file", self.file_path)
                 annotation.setAttribute("mime_type", self.mimeType)
-                with io.open(self.file_path, 'rb') as inFile:
-                    out = BytesIO()
-                    with gzip.GzipFile(fileobj=out, mode="wb") as f:
-                        f.writelines(inFile)
-                    f.close()
-                    gzip_data = out.getvalue()
-                    b64_data = base64.b64encode(gzip_data)
+                if self.gzip_data is not None:
+                    b64_data = base64.b64encode(self.gzip_data)
                     b64_data_string = b64_data.decode()
                     cdata = dom.createCDATASection(b64_data_string)
                     annotation.appendChild(cdata)
@@ -132,7 +151,14 @@ class TestCase:
 
     def add_file_annotation(self, name, level='info', description='',
                             file_path=None, mime_type='text/plain'):
-        fa = Annotation(name, level, description, file_path, mime_type)
+        fa = Annotation(name, level, description)
+        fa.add_file_annotation(file_path, mime_type)
+        self.annotations.append(fa)
+        return fa
+
+    def add_link_annotation(self, level='info', description='', file_path=None):
+        fa = Annotation(file_path, level, description)
+        fa.add_link_annotation(file_path)
         self.annotations.append(fa)
         return fa
 
@@ -178,7 +204,14 @@ class TestSuite:
 
     def add_file_annotation(self, name, level='info', description='',
                             file_path=None, mime_type='text/plain'):
-        fa = Annotation(name, level, description, file_path, mime_type)
+        fa = Annotation(name, level, description)
+        fa.add_file_annotation(file_path, mime_type)
+        self.annotations.append(fa)
+        return fa
+
+    def add_link_annotation(self, level='info', description='', file_path=None):
+        fa = Annotation(file_path, level, description)
+        fa.add_link_annotation(file_path)
         self.annotations.append(fa)
         return fa
 
