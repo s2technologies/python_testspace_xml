@@ -63,11 +63,17 @@ class TestTestspaceXml:
 
     def test_number_annotations(self):
         test_cases = self.testspace_xml_root.xpath("//test_suite/test_case/annotation")
-        assert len(test_cases) is 3
+        assert len(test_cases) is 9
 
     def test_number_file_annotations(self):
         test_cases = self.testspace_xml_root.xpath("//test_suite/test_case/annotation[@file]")
         assert len(test_cases) is 2
+
+    def test_annotation_order(self):
+        annotations = self.testspace_xml_root.xpath(
+            "//test_suite/test_case[@name='passing case 1']/annotation")
+        for idx, annotation in enumerate(annotations):
+            assert annotation.get('name') == self.annotation_tuple[idx][0]
 
     def test_annotation_order(self):
         annotations = self.testspace_xml_root.xpath(
