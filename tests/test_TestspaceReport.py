@@ -1,4 +1,3 @@
-import pytest
 import os
 from lxml import etree, objectify
 from lxml.etree import XMLSyntaxError
@@ -46,15 +45,15 @@ def create_simple_testspace_xml(self):
 
 class TestTestspaceXml:
     @classmethod
-    def setup_class(self):
-        create_simple_testspace_xml(self)
+    def setup_class(cls):
+        create_simple_testspace_xml(cls)
 
     @classmethod
     def teardown_class(cls):
         """ teardown any state that was previously setup with a call to
         setup_class.
         """
-        #os.remove('testspace.xml')
+        os.remove('testspace.xml')
 
     def test_number_testcases(self):
         test_cases = self.testspace_xml_root.xpath("//test_suite/test_case")
