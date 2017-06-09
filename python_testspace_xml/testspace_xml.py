@@ -169,6 +169,7 @@ class TestCase:
     def add_annotation(self, annotation):
         self.annotations.append(annotation)
 
+
 class TestSuite:
     def __init__(self, name):
         # optional sub-suites
