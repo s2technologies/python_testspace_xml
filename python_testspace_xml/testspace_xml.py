@@ -166,6 +166,8 @@ class TestCase:
         self.annotations.append(ta)
         return ta
 
+    def add_annotation(self, annotation):
+        self.annotations.append(annotation)
 
 class TestSuite:
     def __init__(self, name):
@@ -219,6 +221,9 @@ class TestSuite:
         ta = Annotation(name, level, description)
         self.annotations.append(ta)
         return ta
+
+    def add_annotation(self, annotation):
+        self.annotations.append(annotation)
 
     def set_duration_ms(self, duration):
         self.duration = duration

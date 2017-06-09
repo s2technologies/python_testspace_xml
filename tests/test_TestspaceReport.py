@@ -32,8 +32,8 @@ def create_simple_testspace_xml(self):
     test_case = testspace_xml.TestCase('failing case 1')
     test_case.fail('failing testcase')  # adds annotation to testcase
     example_suite.add_test_case(test_case)
-    test_annotation = testspace_xml.Annotation('comment string')
-    test_annotation.add_comment('annotation comment', "verify annotation comments")
+    test_annotation = test_case.add_text_annotation('annotation with comment')
+    test_annotation.add_comment("comment", "annotation comment")
     testspace_report.write_xml('testspace.xml', to_pretty=True)
 
     xml_file = open('testspace.xml', 'r')
@@ -53,7 +53,7 @@ class TestTestspaceXml:
         """ teardown any state that was previously setup with a call to
         setup_class.
         """
-        os.remove('testspace.xml')
+        #os.remove('testspace.xml')
 
     def test_number_testcases(self):
         test_cases = self.testspace_xml_root.xpath("//test_suite/test_case")
@@ -69,11 +69,15 @@ class TestTestspaceXml:
 
     def test_number_annotations(self):
         test_cases = self.testspace_xml_root.xpath("//test_suite/test_case/annotation")
-        assert len(test_cases) is 10
+        assert len(test_cases) is 11
 
     def test_number_file_annotations(self):
         test_cases = self.testspace_xml_root.xpath("//test_suite/test_case/annotation[@file]")
         assert len(test_cases) is 2
+
+    def test_number_annotation_comments(self):
+        test_cases = self.testspace_xml_root.xpath("//test_suite/test_case/annotation/comment")
+        assert len(test_cases) is 1
 
     def test_annotation_order(self):
         annotations = self.testspace_xml_root.xpath(
