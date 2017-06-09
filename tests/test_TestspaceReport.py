@@ -22,7 +22,8 @@ def create_simple_testspace_xml(self):
     example_suite.add_test_case(test_case)
 
     test_case = testspace_xml.TestCase('passing case 2', 'passed')
-    test_case.add_file_annotation('report_v1.xsd', file_path='tests/report_v1.xsd')
+    test_case.add_file_annotation('tests/report_v1.xsd', file_path='tests/report_v1.xsd')
+    test_case.add_file_annotation('report_v1.xsd', file_path='/report_v1.xsd')
     test_case.add_link_annotation(file_path=r'\\machine/public')
     test_case.add_info_annotation(self.annotation_tuple[0][2])
     test_case.add_error_annotation(self.annotation_tuple[1][2])
@@ -32,6 +33,8 @@ def create_simple_testspace_xml(self):
     test_case = testspace_xml.TestCase('failing case 1')
     test_case.fail('failing testcase')  # adds annotation to testcase
     example_suite.add_test_case(test_case)
+    test_annotation = testspace_xml.Annotation('comment string')
+    test_annotation.add_comment('annotation comment', "verify annotation comments")
     testspace_report.write_xml('testspace.xml', to_pretty=True)
 
     xml_file = open('testspace.xml', 'r')
@@ -42,7 +45,7 @@ def create_simple_testspace_xml(self):
 
 
 class TestTestspaceXml:
-    @pytest.fixture(autouse=True)
+    @classmethod
     def setup_class(self):
         create_simple_testspace_xml(self)
 
@@ -51,7 +54,7 @@ class TestTestspaceXml:
         """ teardown any state that was previously setup with a call to
         setup_class.
         """
-        os.remove('testspace.xml')
+        #os.remove('testspace.xml')
 
     def test_number_testcases(self):
         test_cases = self.testspace_xml_root.xpath("//test_suite/test_case")
@@ -67,7 +70,7 @@ class TestTestspaceXml:
 
     def test_number_annotations(self):
         test_cases = self.testspace_xml_root.xpath("//test_suite/test_case/annotation")
-        assert len(test_cases) is 9
+        assert len(test_cases) is 10
 
     def test_number_file_annotations(self):
         test_cases = self.testspace_xml_root.xpath("//test_suite/test_case/annotation[@file]")

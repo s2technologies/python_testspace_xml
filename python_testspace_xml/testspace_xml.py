@@ -53,9 +53,9 @@ class Annotation:
         self.mimeType = mime_type
         if file_path is not None:
             if not os.path.isfile(self.file_path):
-                ta = Annotation(self.file_path, level='error')
-                ta.description = 'File: ' + self.file_path + ' not found.'
-                self.comments.append(ta)
+                self.level = 'error'
+                self.description = 'File: ' + self.file_path + ' not found.'
+                self.file_path = None
             else:
                 with io.open(self.file_path, 'rb') as inFile:
                     out = BytesIO()
@@ -70,9 +70,8 @@ class Annotation:
         if match_path and file_path:
             self.file_path = "file://" + file_path.replace('\\', '/')
         else:
-            ta = Annotation(self.file_path, level='error')
-            ta.description = 'Invalid network file path given:' + file_path
-            self.comments.append(ta)
+            self.level = 'error'
+            self.description = 'Invalid network file path given:' + file_path
 
     def write_xml(self, parent_element, dom):
         annotation = dom.createElement("annotation")
