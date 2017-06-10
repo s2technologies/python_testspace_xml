@@ -53,9 +53,9 @@ class Annotation:
         self.mimeType = mime_type
         if file_path is not None:
             if not os.path.isfile(self.file_path):
-                ta = Annotation(self.file_path, level='error')
-                ta.description = 'File: ' + self.file_path + ' not found.'
-                self.comments.append(ta)
+                self.level = 'error'
+                self.description = 'File: ' + self.file_path + ' not found.'
+                self.file_path = None
             else:
                 with io.open(self.file_path, 'rb') as inFile:
                     out = BytesIO()
@@ -70,9 +70,8 @@ class Annotation:
         if match_path and file_path:
             self.file_path = "file://" + file_path.replace('\\', '/')
         else:
-            ta = Annotation(self.file_path, level='error')
-            ta.description = 'Invalid network file path given:' + file_path
-            self.comments.append(ta)
+            self.level = 'error'
+            self.description = 'Invalid network file path given:' + file_path
 
     def write_xml(self, parent_element, dom):
         annotation = dom.createElement("annotation")
@@ -167,6 +166,9 @@ class TestCase:
         self.annotations.append(ta)
         return ta
 
+    def add_annotation(self, annotation):
+        self.annotations.append(annotation)
+
 
 class TestSuite:
     def __init__(self, name):
@@ -175,6 +177,7 @@ class TestSuite:
         self.is_root_suite = False
         self.name = name
         self.description = ''
+        self.duration = 0
         self.start_time = ''
         self.test_cases = []
         self.custom_data = []
@@ -220,6 +223,12 @@ class TestSuite:
         self.annotations.append(ta)
         return ta
 
+    def add_annotation(self, annotation):
+        self.annotations.append(annotation)
+
+    def set_duration_ms(self, duration):
+        self.duration = duration
+
 
 class XmlWriter:
     def __init__(self, report):
@@ -251,6 +260,8 @@ class XmlWriter:
             suite_elem.setAttribute('description', test_suite.description)
             suite_elem.setAttribute('start_time', str(test_suite.start_time))
             parent_node.appendChild(suite_elem)
+            if test_suite.duration > 0:
+                suite_elem.setAttribute('duration', test_suite.duration)
 
         for a in test_suite.annotations:
             a.write_xml(suite_elem, self.dom)
