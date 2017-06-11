@@ -14,6 +14,7 @@ def create_simple_testspace_xml(self):
     testspace_report = testspace_xml.TestspaceReport()
 
     example_suite = testspace_report.get_or_add_test_suite('Example Suite')
+    example_suite.add_link_annotation(path='https://help.testspace.com')
     test_case = testspace_xml.TestCase('passing case 1', 'passed')
     for annotation in self.annotation_tuple:
         test_case.add_text_annotation(
@@ -23,7 +24,7 @@ def create_simple_testspace_xml(self):
     test_case = testspace_xml.TestCase('passing case 2', 'passed')
     test_case.add_file_annotation('tests/report_v1.xsd', file_path='tests/report_v1.xsd')
     test_case.add_file_annotation('report_v1.xsd', file_path='/report_v1.xsd')
-    test_case.add_link_annotation(file_path=r'\\machine/public')
+    test_case.add_link_annotation(path=r'\\machine/public')
     test_case.add_info_annotation(self.annotation_tuple[0][2])
     test_case.add_error_annotation(self.annotation_tuple[1][2])
     test_case.add_warning_annotation(self.annotation_tuple[2][2])
@@ -53,7 +54,15 @@ class TestTestspaceXml:
         """ teardown any state that was previously setup with a call to
         setup_class.
         """
-        os.remove('testspace.xml')
+        #os.remove('testspace.xml')
+
+    def test_number_testsuites(self):
+        test_cases = self.testspace_xml_root.xpath("//test_suite")
+        assert len(test_cases) is 1
+
+    def test_number_testsuite_annotations(self):
+        test_cases = self.testspace_xml_root.xpath("//test_suite/annotation")
+        assert len(test_cases) is 1
 
     def test_number_testcases(self):
         test_cases = self.testspace_xml_root.xpath("//test_suite/test_case")
@@ -67,15 +76,15 @@ class TestTestspaceXml:
         test_cases = self.testspace_xml_root.xpath("//test_suite/test_case[@status='failed']")
         assert len(test_cases) is 1
 
-    def test_number_annotations(self):
+    def test_number_testcase_annotations(self):
         test_cases = self.testspace_xml_root.xpath("//test_suite/test_case/annotation")
         assert len(test_cases) is 11
 
-    def test_number_file_annotations(self):
+    def test_number_testcase_file_annotations(self):
         test_cases = self.testspace_xml_root.xpath("//test_suite/test_case/annotation[@file]")
         assert len(test_cases) is 2
 
-    def test_number_annotation_comments(self):
+    def test_number_testcase_annotation_comments(self):
         test_cases = self.testspace_xml_root.xpath("//test_suite/test_case/annotation/comment")
         assert len(test_cases) is 1
 

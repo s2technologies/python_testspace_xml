@@ -60,14 +60,15 @@ class Annotation:
                     f.close()
                     self.gzip_data = out.getvalue()
 
-    def add_link_annotation(self, file_path=None):
+    def add_link_annotation(self, path=None):
         self.link_file = True
-        match_path = re.search(r'\\\w', file_path)
-        if match_path and file_path:
-            self.file_path = "file://" + file_path.replace('\\', '/')
+        if path.startswith(r'\\'):
+            self.file_path = "file://" + path.replace('\\', '/')
+        elif path.startswith(r'https') or path.startswith(r'http://'):
+            self.file_path = path
         else:
             self.level = 'error'
-            self.description = 'Invalid network file path given:' + file_path
+            self.description = 'Invalid path given:' + path
 
     def write_xml(self, parent_element, dom):
         annotation = dom.createElement("annotation")
@@ -146,9 +147,9 @@ class TestCase:
         self.annotations.append(fa)
         return fa
 
-    def add_link_annotation(self, level='info', description='', file_path=None):
-        fa = Annotation(file_path, level, description)
-        fa.add_link_annotation(file_path)
+    def add_link_annotation(self, level='info', description='', path=None):
+        fa = Annotation(path, level, description)
+        fa.add_link_annotation(path)
         self.annotations.append(fa)
         return fa
 
@@ -203,9 +204,9 @@ class TestSuite:
         self.annotations.append(fa)
         return fa
 
-    def add_link_annotation(self, level='info', description='', file_path=None):
-        fa = Annotation(file_path, level, description)
-        fa.add_link_annotation(file_path)
+    def add_link_annotation(self, level='info', description='', path=None):
+        fa = Annotation(path, level, description)
+        fa.add_link_annotation(path)
         self.annotations.append(fa)
         return fa
 
