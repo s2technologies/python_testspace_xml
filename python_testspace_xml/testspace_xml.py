@@ -10,10 +10,6 @@ import sys
 from xml.dom.minidom import parseString
 
 
-def make_file_href_link(file_path):
-    return "<a href='file://" + file_path.replace('\\', '/') + "'>" + file_path + '</a>'
-
-
 class CustomData:
     def __init__(self, name, value):
         self.name = name
@@ -142,11 +138,6 @@ class TestCase:
     def add_error_annotation(self, message):
         ta = self.add_text_annotation('Error', 'error')
         ta.description = message
-
-    def add_custom_data(self, name, value):
-        d = CustomData(name, value)
-        self.custom_data.append(d)
-        return d
 
     def add_file_annotation(self, name, level='info', description='',
                             file_path=None, mime_type='text/plain'):
