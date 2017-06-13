@@ -33,7 +33,7 @@ class Annotation:
         self.name = name
         self.level = level
         self.description = description
-        self.mimeType = None
+        self.mime_type = None
         self.file_path = None
         self.link_file = False
         self.gzip_data = None
@@ -45,7 +45,7 @@ class Annotation:
 
     def set_file_annotation(self, file_path=None, mime_type='text/plain', string_buffer=None):
         self.file_path = file_path
-        self.mimeType = mime_type
+        self.mime_type = mime_type
         if file_path is not None:
             if not os.path.isfile(self.file_path):
                 self.level = 'error'
@@ -91,7 +91,7 @@ class Annotation:
 
         if self.gzip_data is not None:
                     annotation.setAttribute("link_file", "false")
-                    annotation.setAttribute("mime_type", self.mimeType)
+                    annotation.setAttribute("mime_type", self.mime_type)
                     b64_data = base64.b64encode(self.gzip_data)
                     b64_data_string = b64_data.decode()
                     cdata = dom.createCDATASection(b64_data_string)
@@ -157,7 +157,7 @@ class TestCase:
     def add_string_buffer_annotation(self, name, level='info', description='',
                                      string_buffer=None, mime_type='text/plain'):
         fa = Annotation(name, level, description)
-        fa.set_file_annotation(string_buffer=string_buffer, mime_type='text/plain')
+        fa.set_file_annotation(string_buffer=string_buffer, mime_type=mime_type)
         self.annotations.append(fa)
         return fa
 
@@ -226,7 +226,7 @@ class TestSuite:
     def add_string_buffer_annotation(self, name, level='info', description='',
                                      string_buffer=None, mime_type='text/plain'):
         fa = Annotation(name, level, description)
-        fa.set_file_annotation(string_buffer=string_buffer, mime_type='text/plain')
+        fa.set_file_annotation(string_buffer=string_buffer, mime_type=mime_type)
         self.annotations.append(fa)
         return fa
 

@@ -14,6 +14,9 @@ def create_simple_testspace_xml(self):
     string_buffer = 'Text content to be displayed in Testspace\n' \
                     'Additional line of content'
 
+    string_buffer_html = '<!DOCTYPE html><html><head><title>Page Title</title></head>' \
+                         '<body><h1>This is a Heading</h1><p>This is a paragraph.</p></body></html>'
+
     test_annotation = testspace_xml.Annotation('annotation with comment')
     test_annotation.add_comment("comment", "annotation comment")
 
@@ -23,6 +26,8 @@ def create_simple_testspace_xml(self):
     example_suite.add_link_annotation(path='https://help.testspace.com')
     example_suite.add_string_buffer_annotation(
         'Suite string annotation as file', string_buffer=string_buffer)
+    example_suite.add_string_buffer_annotation(
+        'Suite string annotation as html', string_buffer=string_buffer_html, mime_type='text/html')
     example_suite.add_text_annotation(
         'Suite Text Annotation', description='This is a string annotation only')
     example_suite.add_file_annotation('tests/report_v1.xsd', file_path='tests/report_v1.xsd')
@@ -79,7 +84,7 @@ class TestTestspaceXml:
 
     def test_number_testsuite_annotations(self):
         test_cases = self.testspace_xml_root.xpath("//test_suite/annotation")
-        assert len(test_cases) is 5
+        assert len(test_cases) is 6
 
     def test_number_testcases(self):
         test_cases = self.testspace_xml_root.xpath("//test_suite/test_case")
