@@ -172,6 +172,11 @@ class TestCase:
         self.annotations.append(ta)
         return ta
 
+    def add_custom_metric(self, name, value):
+        d = CustomData(name, value)
+        self.custom_data.append(d)
+        return d
+
     def add_annotation(self, annotation):
         self.annotations.append(annotation)
 
@@ -206,7 +211,7 @@ class TestSuite:
         self.sub_suites[str(name)] = new_suite
         return new_suite
 
-    def add_custom_data(self, name, value):
+    def add_custom_metric(self, name, value):
         d = CustomData(name, value)
         self.custom_data.append(d)
         return d
