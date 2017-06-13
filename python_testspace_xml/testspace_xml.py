@@ -1,17 +1,12 @@
 from __future__ import print_function
 import base64
 import gzip
-import re
 import os
 import io
 from io import BytesIO
 import os.path
 import sys
 from xml.dom.minidom import parseString
-
-
-def make_file_href_link(file_path):
-    return "<a href='file://" + file_path.replace('\\', '/') + "'>" + file_path + '</a>'
 
 
 class CustomData:
@@ -48,7 +43,7 @@ class Annotation:
         comment = AnnotationComment(name, comment)
         self.comments.append(comment)
 
-    def add_file_annotation(self, file_path=None, mime_type='text/plain'):
+    def set_file_annotation(self, file_path=None, mime_type='text/plain', string_buffer=None):
         self.file_path = file_path
         self.mimeType = mime_type
         if file_path is not None:
@@ -63,15 +58,23 @@ class Annotation:
                         f.writelines(inFile)
                     f.close()
                     self.gzip_data = out.getvalue()
+        elif string_buffer is not None:
+            byte_string_buffer = string_buffer.encode()
+            out = BytesIO()
+            with gzip.GzipFile(fileobj=out, mode="wb") as f:
+                f.write(byte_string_buffer)
+            f.close()
+            self.gzip_data = out.getvalue()
 
-    def add_link_annotation(self, file_path=None):
+    def set_link_annotation(self, path=None):
         self.link_file = True
-        match_path = re.search(r'\\\w', file_path)
-        if match_path and file_path:
-            self.file_path = "file://" + file_path.replace('\\', '/')
+        if path.startswith(r'\\'):
+            self.file_path = "file://" + path.replace('\\', '/')
+        elif path.startswith(r'https') or path.startswith(r'http://'):
+            self.file_path = path
         else:
             self.level = 'error'
-            self.description = 'Invalid network file path given:' + file_path
+            self.description = 'Invalid path given:' + path
 
     def write_xml(self, parent_element, dom):
         annotation = dom.createElement("annotation")
@@ -84,10 +87,11 @@ class Annotation:
                 annotation.setAttribute("link_file", "true")
                 annotation.setAttribute("file", self.file_path)
             else:
-                annotation.setAttribute("link_file", "false")
                 annotation.setAttribute("file", self.file_path)
-                annotation.setAttribute("mime_type", self.mimeType)
-                if self.gzip_data is not None:
+
+        if self.gzip_data is not None:
+                    annotation.setAttribute("link_file", "false")
+                    annotation.setAttribute("mime_type", self.mimeType)
                     b64_data = base64.b64encode(self.gzip_data)
                     b64_data_string = b64_data.decode()
                     cdata = dom.createCDATASection(b64_data_string)
@@ -143,21 +147,23 @@ class TestCase:
         ta = self.add_text_annotation('Error', 'error')
         ta.description = message
 
-    def add_custom_data(self, name, value):
-        d = CustomData(name, value)
-        self.custom_data.append(d)
-        return d
-
     def add_file_annotation(self, name, level='info', description='',
                             file_path=None, mime_type='text/plain'):
         fa = Annotation(name, level, description)
-        fa.add_file_annotation(file_path, mime_type)
+        fa.set_file_annotation(file_path, mime_type)
         self.annotations.append(fa)
         return fa
 
-    def add_link_annotation(self, level='info', description='', file_path=None):
-        fa = Annotation(file_path, level, description)
-        fa.add_link_annotation(file_path)
+    def add_string_buffer_annotation(self, name, level='info', description='',
+                                     string_buffer=None, mime_type='text/plain'):
+        fa = Annotation(name, level, description)
+        fa.set_file_annotation(string_buffer=string_buffer, mime_type='text/plain')
+        self.annotations.append(fa)
+        return fa
+
+    def add_link_annotation(self, level='info', description='', path=None):
+        fa = Annotation(path, level, description)
+        fa.set_link_annotation(path)
         self.annotations.append(fa)
         return fa
 
@@ -165,6 +171,11 @@ class TestCase:
         ta = Annotation(name, level, description)
         self.annotations.append(ta)
         return ta
+
+    def add_custom_metric(self, name, value):
+        d = CustomData(name, value)
+        self.custom_data.append(d)
+        return d
 
     def add_annotation(self, annotation):
         self.annotations.append(annotation)
@@ -200,7 +211,7 @@ class TestSuite:
         self.sub_suites[str(name)] = new_suite
         return new_suite
 
-    def add_custom_data(self, name, value):
+    def add_custom_metric(self, name, value):
         d = CustomData(name, value)
         self.custom_data.append(d)
         return d
@@ -208,13 +219,20 @@ class TestSuite:
     def add_file_annotation(self, name, level='info', description='',
                             file_path=None, mime_type='text/plain'):
         fa = Annotation(name, level, description)
-        fa.add_file_annotation(file_path, mime_type)
+        fa.set_file_annotation(file_path, mime_type)
         self.annotations.append(fa)
         return fa
 
-    def add_link_annotation(self, level='info', description='', file_path=None):
-        fa = Annotation(file_path, level, description)
-        fa.add_link_annotation(file_path)
+    def add_string_buffer_annotation(self, name, level='info', description='',
+                                     string_buffer=None, mime_type='text/plain'):
+        fa = Annotation(name, level, description)
+        fa.set_file_annotation(string_buffer=string_buffer, mime_type='text/plain')
+        self.annotations.append(fa)
+        return fa
+
+    def add_link_annotation(self, level='info', description='', path=None):
+        fa = Annotation(path, level, description)
+        fa.set_link_annotation(path)
         self.annotations.append(fa)
         return fa
 
