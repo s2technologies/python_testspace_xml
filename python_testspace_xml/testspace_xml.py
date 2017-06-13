@@ -60,7 +60,11 @@ class Annotation:
                     self.gzip_data = out.getvalue()
         elif string_buffer is not None:
             byte_string_buffer = string_buffer.encode()
-            self.gzip_data = gzip.compress(byte_string_buffer)
+            out = BytesIO()
+            with gzip.GzipFile(fileobj=out, mode="wb") as f:
+                f.write(byte_string_buffer)
+            f.close()
+            self.gzip_data = out.getvalue()
 
     def set_link_annotation(self, path=None):
         self.link_file = True
