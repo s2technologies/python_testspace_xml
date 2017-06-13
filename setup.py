@@ -10,7 +10,7 @@ setup(
     author_email='',
     description='',
     install_requires=[
-        'lxml'
+        'lxml',
         'pytest',
         'pytest-cov',
         'flake8',

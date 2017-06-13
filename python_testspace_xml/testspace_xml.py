@@ -1,7 +1,6 @@
 from __future__ import print_function
 import base64
 import gzip
-import re
 import os
 import io
 from io import BytesIO
@@ -44,7 +43,7 @@ class Annotation:
         comment = AnnotationComment(name, comment)
         self.comments.append(comment)
 
-    def add_file_annotation(self, file_path=None, mime_type='text/plain'):
+    def set_file_annotation(self, file_path=None, mime_type='text/plain', string_buffer=None):
         self.file_path = file_path
         self.mimeType = mime_type
         if file_path is not None:
@@ -59,8 +58,11 @@ class Annotation:
                         f.writelines(inFile)
                     f.close()
                     self.gzip_data = out.getvalue()
+        elif string_buffer is not None:
+            byte_string_buffer = string_buffer.encode()
+            self.gzip_data = gzip.compress(byte_string_buffer)
 
-    def add_link_annotation(self, path=None):
+    def set_link_annotation(self, path=None):
         self.link_file = True
         if path.startswith(r'\\'):
             self.file_path = "file://" + path.replace('\\', '/')
@@ -81,10 +83,11 @@ class Annotation:
                 annotation.setAttribute("link_file", "true")
                 annotation.setAttribute("file", self.file_path)
             else:
-                annotation.setAttribute("link_file", "false")
                 annotation.setAttribute("file", self.file_path)
-                annotation.setAttribute("mime_type", self.mimeType)
-                if self.gzip_data is not None:
+
+        if self.gzip_data is not None:
+                    annotation.setAttribute("link_file", "false")
+                    annotation.setAttribute("mime_type", self.mimeType)
                     b64_data = base64.b64encode(self.gzip_data)
                     b64_data_string = b64_data.decode()
                     cdata = dom.createCDATASection(b64_data_string)
@@ -143,13 +146,20 @@ class TestCase:
     def add_file_annotation(self, name, level='info', description='',
                             file_path=None, mime_type='text/plain'):
         fa = Annotation(name, level, description)
-        fa.add_file_annotation(file_path, mime_type)
+        fa.set_file_annotation(file_path, mime_type)
+        self.annotations.append(fa)
+        return fa
+
+    def add_string_buffer_annotation(self, name, level='info', description='',
+                                     string_buffer=None, mime_type='text/plain'):
+        fa = Annotation(name, level, description)
+        fa.set_file_annotation(string_buffer=string_buffer, mime_type='text/plain')
         self.annotations.append(fa)
         return fa
 
     def add_link_annotation(self, level='info', description='', path=None):
         fa = Annotation(path, level, description)
-        fa.add_link_annotation(path)
+        fa.set_link_annotation(path)
         self.annotations.append(fa)
         return fa
 
@@ -200,13 +210,20 @@ class TestSuite:
     def add_file_annotation(self, name, level='info', description='',
                             file_path=None, mime_type='text/plain'):
         fa = Annotation(name, level, description)
-        fa.add_file_annotation(file_path, mime_type)
+        fa.set_file_annotation(file_path, mime_type)
+        self.annotations.append(fa)
+        return fa
+
+    def add_string_buffer_annotation(self, name, level='info', description='',
+                                     string_buffer=None, mime_type='text/plain'):
+        fa = Annotation(name, level, description)
+        fa.set_file_annotation(string_buffer=string_buffer, mime_type='text/plain')
         self.annotations.append(fa)
         return fa
 
     def add_link_annotation(self, level='info', description='', path=None):
         fa = Annotation(path, level, description)
-        fa.add_link_annotation(path)
+        fa.set_link_annotation(path)
         self.annotations.append(fa)
         return fa
 

@@ -11,10 +11,17 @@ def create_simple_testspace_xml(self):
         ('annotation info example', 'info', 'description of annotation'),
         ('aannotation error example', 'error', 'to confirm order of annotations')]
 
+    string_buffer = 'Text content to be displayed in Testspace\n' \
+                    'Additional line of content'
+
     testspace_report = testspace_xml.TestspaceReport()
 
     example_suite = testspace_report.get_or_add_test_suite('Example Suite')
     example_suite.add_link_annotation(path='https://help.testspace.com')
+    example_suite.add_string_buffer_annotation('Suite string annotation as file', string_buffer=string_buffer)
+    example_suite.add_text_annotation('Suite Text Annotation', description='This is a string annotation only')
+    example_suite.add_file_annotation('tests/report_v1.xsd', file_path='tests/report_v1.xsd')
+
     test_case = testspace_xml.TestCase('passing case 1', 'passed')
     for annotation in self.annotation_tuple:
         test_case.add_text_annotation(
@@ -24,6 +31,7 @@ def create_simple_testspace_xml(self):
     test_case = testspace_xml.TestCase('passing case 2', 'passed')
     test_case.add_file_annotation('tests/report_v1.xsd', file_path='tests/report_v1.xsd')
     test_case.add_file_annotation('report_v1.xsd', file_path='/report_v1.xsd')
+    test_case.add_string_buffer_annotation('Case string annotation as file', string_buffer=string_buffer)
     test_case.add_link_annotation(path=r'\\machine/public')
     test_case.add_info_annotation(self.annotation_tuple[0][2])
     test_case.add_error_annotation(self.annotation_tuple[1][2])
@@ -54,7 +62,7 @@ class TestTestspaceXml:
         """ teardown any state that was previously setup with a call to
         setup_class.
         """
-        #os.remove('testspace.xml')
+        os.remove('testspace.xml')
 
     def test_number_testsuites(self):
         test_cases = self.testspace_xml_root.xpath("//test_suite")
@@ -62,7 +70,7 @@ class TestTestspaceXml:
 
     def test_number_testsuite_annotations(self):
         test_cases = self.testspace_xml_root.xpath("//test_suite/annotation")
-        assert len(test_cases) is 1
+        assert len(test_cases) is 4
 
     def test_number_testcases(self):
         test_cases = self.testspace_xml_root.xpath("//test_suite/test_case")
@@ -78,7 +86,7 @@ class TestTestspaceXml:
 
     def test_number_testcase_annotations(self):
         test_cases = self.testspace_xml_root.xpath("//test_suite/test_case/annotation")
-        assert len(test_cases) is 11
+        assert len(test_cases) is 12
 
     def test_number_testcase_file_annotations(self):
         test_cases = self.testspace_xml_root.xpath("//test_suite/test_case/annotation[@file]")
