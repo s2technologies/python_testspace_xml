@@ -6,7 +6,12 @@ from python_testspace_xml import testspace_xml
 
 
 class TestTestspaceReportXsd:
-    testsuite_list = ['z testsuite', '1 testsuite', 'Example Suite', 'A test suite', 'aa test suite']
+    testsuite_list = ['z testsuite',
+                      '1 testsuite',
+                      'Example Suite',
+                      'A test suite',
+                      'aa test suite']
+
     annotation_tuple = [
         ('zannotation warning example', 'warn', 'to confirm order of annotations'),
         ('annotation info example', 'info', 'description of annotation'),
@@ -79,7 +84,7 @@ class TestTestspaceReportXsd:
         """ teardown any state that was previously setup with a call to
         setup_class.
         """
-        #os.remove('testspace.xml')
+        os.remove('testspace.xml')
 
     def test_number_testsuites(self):
         test_suites = self.testspace_xml_root.xpath("//test_suite")
@@ -134,7 +139,8 @@ class TestTestspaceReportXsd:
             assert annotation.get('name') == self.annotation_tuple[idx][0]
 
     def test_testcase_duration(self):
-        suite_element = self.testspace_xml_root.xpath("//test_suite/test_case[@name='passing case 2']")
+        suite_element = self.testspace_xml_root.xpath(
+            "//test_suite/test_case[@name='passing case 2']")
         assert float(suite_element[0].attrib['duration']) == self.duration
 
     def test_validate_xsd(self):
