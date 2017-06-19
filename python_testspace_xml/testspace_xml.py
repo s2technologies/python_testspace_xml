@@ -291,9 +291,9 @@ class XmlWriter:
         for tc in test_suite.test_cases:
             self._write_test_case(suite_elem, tc)
 
-        # write child suites, sort by name
-        for ts in test_suite.sub_suites.keys():
-            self._write_suite(suite_elem, test_suite.sub_suites[ts])
+        # write child suites
+        for v in test_suite.sub_suites.values():
+            self._write_suite(suite_elem, v)
 
     def _write_test_case(self, parent_node, test_case):
         elem_tc = self.dom.createElement('test_case')
