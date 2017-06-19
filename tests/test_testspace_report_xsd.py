@@ -6,6 +6,12 @@ from python_testspace_xml import testspace_xml
 
 
 class TestTestspaceReportXsd:
+    testsuite_list = ['z testsuite',
+                      '1 testsuite',
+                      'Example Suite',
+                      'A test suite',
+                      'aa test suite']
+
     annotation_tuple = [
         ('zannotation warning example', 'warn', 'to confirm order of annotations'),
         ('annotation info example', 'info', 'description of annotation'),
@@ -22,6 +28,9 @@ class TestTestspaceReportXsd:
     @classmethod
     def setup_class(cls):
         testspace_report = testspace_xml.TestspaceReport()
+
+        for suite in cls.testsuite_list:
+            testspace_report.add_test_suite(suite)
 
         example_suite = testspace_report.get_or_add_test_suite('Example Suite')
         example_suite.add_link_annotation(path='https://help.testspace.com')
@@ -78,12 +87,17 @@ class TestTestspaceReportXsd:
         os.remove('testspace.xml')
 
     def test_number_testsuites(self):
-        test_cases = self.testspace_xml_root.xpath("//test_suite")
-        assert len(test_cases) is 1
+        test_suites = self.testspace_xml_root.xpath("//test_suite")
+        assert len(test_suites) is 5
+
+    def test_testsuites_order(self):
+        test_suites = self.testspace_xml_root.xpath("//test_suite")
+        for idx, tests_suite in enumerate(test_suites):
+            assert tests_suite.get('name') == self.testsuite_list[idx]
 
     def test_number_testsuite_annotations(self):
-        test_cases = self.testspace_xml_root.xpath("//test_suite/annotation")
-        assert len(test_cases) is 5
+        test_suites = self.testspace_xml_root.xpath("//test_suite/annotation")
+        assert len(test_suites) is 5
 
     def test_testsuite_duration(self):
         suite_element = self.testspace_xml_root.xpath("//test_suite[@duration]")
@@ -125,7 +139,8 @@ class TestTestspaceReportXsd:
             assert annotation.get('name') == self.annotation_tuple[idx][0]
 
     def test_testcase_duration(self):
-        suite_element = self.testspace_xml_root.xpath("//test_suite/test_case[@name='passing case 2']")
+        suite_element = self.testspace_xml_root.xpath(
+            "//test_suite/test_case[@name='passing case 2']")
         assert float(suite_element[0].attrib['duration']) == self.duration
 
     def test_validate_xsd(self):
