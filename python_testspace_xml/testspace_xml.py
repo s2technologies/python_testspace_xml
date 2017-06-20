@@ -1,7 +1,6 @@
 from __future__ import print_function
 import base64
 import gzip
-import collections
 import os
 import io
 from io import BytesIO
