@@ -1,7 +1,6 @@
 from __future__ import print_function
 import base64
 import gzip
-import collections
 import os
 import io
 from io import BytesIO
@@ -185,7 +184,7 @@ class TestCase:
 class TestSuite:
     def __init__(self, name):
         # optional sub-suites
-        self.sub_suites = collections.OrderedDict()
+        self.sub_suites = []
         self.is_root_suite = False
         self.name = name
         self.description = ''
@@ -203,13 +202,14 @@ class TestSuite:
         if not suite_name:
             # write under root suite
             return self.get_or_add_test_suite('uncategorized')
-        if suite_name in self.sub_suites.keys():
-            return self.sub_suites[suite_name]
+        for suite in self.sub_suites:
+            if suite_name == suite.name:
+                return suite
         return self.add_test_suite(suite_name)
 
     def add_test_suite(self, name):
         new_suite = TestSuite(name)
-        self.sub_suites[str(name)] = new_suite
+        self.sub_suites.append(new_suite)
         return new_suite
 
     def add_custom_metric(self, name, value):
@@ -292,8 +292,8 @@ class XmlWriter:
             self._write_test_case(suite_elem, tc)
 
         # write child suites
-        for v in test_suite.sub_suites.values():
-            self._write_suite(suite_elem, v)
+        for sub_suite in test_suite.sub_suites:
+            self._write_suite(suite_elem, sub_suite)
 
     def _write_test_case(self, parent_node, test_case):
         elem_tc = self.dom.createElement('test_case')
