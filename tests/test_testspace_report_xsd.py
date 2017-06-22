@@ -33,7 +33,8 @@ class TestTestspaceReportXsd:
             testspace_report.add_test_suite(suite)
 
         example_suite = testspace_report.get_or_add_test_suite('Example Suite')
-        example_suite.add_link_annotation(path='https://help.testspace.com')
+        example_suite.add_link_annotation('https://help.testspace.com')
+        example_suite.add_link_annotation('https://testspace.com', name='Testspace.com')
         example_suite.add_string_buffer_annotation(
             'Suite string annotation as file', string_buffer=cls.string_buffer)
         example_suite.add_text_annotation(
@@ -54,7 +55,7 @@ class TestTestspaceReportXsd:
         test_case.add_file_annotation('report_v1.xsd', file_path='/report_v1.xsd')
         test_case.add_string_buffer_annotation(
             'Case string annotation as file', string_buffer=cls.string_buffer)
-        test_case.add_link_annotation(path=r'\\machine/public')
+        test_case.add_link_annotation(r'\\machine/public')
         test_case.add_info_annotation(cls.annotation_tuple[0][2])
         test_case.add_error_annotation(cls.annotation_tuple[1][2])
         test_case.add_warning_annotation(cls.annotation_tuple[2][2])
@@ -97,7 +98,7 @@ class TestTestspaceReportXsd:
 
     def test_number_testsuite_annotations(self):
         test_suites = self.testspace_xml_root.xpath("//test_suite/annotation")
-        assert len(test_suites) is 5
+        assert len(test_suites) is 6
 
     def test_testsuite_duration(self):
         suite_element = self.testspace_xml_root.xpath("//test_suite[@duration]")

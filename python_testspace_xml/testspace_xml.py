@@ -161,8 +161,10 @@ class TestCase:
         self.annotations.append(fa)
         return fa
 
-    def add_link_annotation(self, level='info', description='', path=None):
-        fa = Annotation(path, level, description)
+    def add_link_annotation(self, path, level='info', description='', name=None):
+        if name is None:
+            name = path
+        fa = Annotation(name, level, description)
         fa.set_link_annotation(path)
         self.annotations.append(fa)
         return fa
@@ -231,8 +233,10 @@ class TestSuite:
         self.annotations.append(fa)
         return fa
 
-    def add_link_annotation(self, level='info', description='', path=None):
-        fa = Annotation(path, level, description)
+    def add_link_annotation(self, path, level='info', description='', name=None):
+        if name is None:
+            name = path
+        fa = Annotation(name, level, description)
         fa.set_link_annotation(path)
         self.annotations.append(fa)
         return fa
@@ -320,6 +324,6 @@ class TestspaceReport(TestSuite):
     def get_root_suite(self):
         return self
 
-    def write_xml(self, outfile=None, to_pretty=False):
+    def write_xml(self, out_file=None, to_pretty=False):
         writer = XmlWriter(self)
-        writer.write(outfile, to_pretty)
+        writer.write(out_file, to_pretty)
