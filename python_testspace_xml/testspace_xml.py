@@ -2,9 +2,9 @@ from __future__ import print_function
 import base64
 import gzip
 import os
+import os.path
 import io
 from io import BytesIO
-import os.path
 import sys
 from xml.dom.minidom import parseString
 
@@ -49,19 +49,19 @@ class Annotation:
         if file_path is not None:
             if not os.path.isfile(self.file_path):
                 self.level = 'error'
-                self.description = 'File: ' + self.file_path + ' not found.'
+                self.description = 'File: {0} not found'.format(self.file_path)
                 self.file_path = None
             else:
-                with io.open(self.file_path, 'rb') as inFile:
+                with io.open(self.file_path, 'rb') as in_file:
                     out = BytesIO()
-                    with gzip.GzipFile(fileobj=out, mode="wb") as f:
-                        f.writelines(inFile)
+                    with gzip.GzipFile(fileobj=out, mode='wb') as f:
+                        f.writelines(in_file)
                     f.close()
                     self.gzip_data = out.getvalue()
         elif string_buffer is not None:
             byte_string_buffer = string_buffer.encode()
             out = BytesIO()
-            with gzip.GzipFile(fileobj=out, mode="wb") as f:
+            with gzip.GzipFile(fileobj=out, mode='wb') as f:
                 f.write(byte_string_buffer)
             f.close()
             self.gzip_data = out.getvalue()
@@ -69,12 +69,12 @@ class Annotation:
     def set_link_annotation(self, path=None):
         self.link_file = True
         if path.startswith(r'\\'):
-            self.file_path = "file://" + path.replace('\\', '/')
-        elif path.startswith(r'https') or path.startswith(r'http://'):
+            self.file_path = 'file:// {0}'.format(path.replace('\\', '/'))
+        elif path.startswith('https') or path.startswith('http://'):
             self.file_path = path
         else:
             self.level = 'error'
-            self.description = 'Invalid path given:' + path
+            self.description = 'Invalid path given: {0}'.format(path)
 
     def write_xml(self, parent_element, dom):
         annotation = dom.createElement("annotation")
@@ -90,16 +90,16 @@ class Annotation:
                 annotation.setAttribute("file", self.file_path)
 
         if self.gzip_data is not None:
-                    annotation.setAttribute("link_file", "false")
-                    annotation.setAttribute("mime_type", self.mime_type)
-                    b64_data = base64.b64encode(self.gzip_data)
-                    b64_data_string = b64_data.decode()
-                    cdata = dom.createCDATASection(b64_data_string)
-                    annotation.appendChild(cdata)
+            annotation.setAttribute("link_file", "false")
+            annotation.setAttribute("mime_type", self.mime_type)
+            b64_data = base64.b64encode(self.gzip_data)
+            b64_data_string = b64_data.decode()
+            cdata = dom.createCDATASection(b64_data_string)
+            annotation.appendChild(cdata)
 
         # add comments
         for c in self.comments:
-            c_elem = dom.createElement('comment')
+            c_elem = dom.createElement("comment")
             c_elem.setAttribute("label", c.name)
             cdata = dom.createCDATASection(c.comment)
             c_elem.appendChild(cdata)
@@ -256,7 +256,14 @@ class TestSuite:
 class XmlWriter:
     def __init__(self, report):
         self.report = report
-        self.dom = parseString('<reporter schema_version="1.0"/>')
+
+        if report.product_version is None:
+            reporter_string = '<reporter schema_version="1.0"/>'
+        else:
+            reporter_string = '<reporter schema_version="1.0" product_version="{0}"/>'\
+                .format(report.product_version)
+
+        self.dom = parseString(reporter_string)
 
     def write(self, target_file_path, to_pretty=False):
         doc_elem = self.dom.documentElement
@@ -320,9 +327,13 @@ class TestspaceReport(TestSuite):
     def __init__(self):
         TestSuite.__init__(self, '__root__')
         self.is_root_suite = True
+        self.product_version = None
 
     def get_root_suite(self):
         return self
+
+    def set_product_version(self, product_version):
+        self.product_version = product_version
 
     def write_xml(self, out_file=None, to_pretty=False):
         writer = XmlWriter(self)

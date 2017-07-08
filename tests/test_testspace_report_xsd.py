@@ -28,6 +28,7 @@ class TestTestspaceReportXsd:
     @classmethod
     def setup_class(cls):
         testspace_report = testspace_xml.TestspaceReport()
+        testspace_report.set_product_version('pytest')
 
         for suite in cls.testsuite_list:
             testspace_report.add_test_suite(suite)
