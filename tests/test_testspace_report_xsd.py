@@ -28,11 +28,13 @@ class TestTestspaceReportXsd:
     @classmethod
     def setup_class(cls):
         testspace_report = testspace_xml.TestspaceReport()
+        testspace_report.set_product_version('pytest')
 
         for suite in cls.testsuite_list:
             testspace_report.add_test_suite(suite)
 
         example_suite = testspace_report.get_or_add_test_suite('Example Suite')
+        example_suite.set_description('https://testspace.com')
         example_suite.add_link_annotation('https://help.testspace.com')
         example_suite.add_link_annotation('https://testspace.com', name='Testspace.com')
         example_suite.add_string_buffer_annotation(

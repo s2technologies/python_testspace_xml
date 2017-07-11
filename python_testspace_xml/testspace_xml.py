@@ -2,9 +2,9 @@ from __future__ import print_function
 import base64
 import gzip
 import os
+import os.path
 import io
 from io import BytesIO
-import os.path
 import sys
 from xml.dom.minidom import parseString
 
@@ -49,32 +49,32 @@ class Annotation:
         if file_path is not None:
             if not os.path.isfile(self.file_path):
                 self.level = 'error'
-                self.description = 'File: ' + self.file_path + ' not found.'
+                self.description = 'File: {0} not found'.format(self.file_path)
                 self.file_path = None
             else:
-                with io.open(self.file_path, 'rb') as inFile:
+                with io.open(self.file_path, 'rb') as in_file:
                     out = BytesIO()
-                    with gzip.GzipFile(fileobj=out, mode="wb") as f:
-                        f.writelines(inFile)
-                    f.close()
+                    with gzip.GzipFile(fileobj=out, mode='wb') as out_fileobj:
+                        out_fileobj.writelines(in_file)
+                    out_fileobj.close()
                     self.gzip_data = out.getvalue()
         elif string_buffer is not None:
             byte_string_buffer = string_buffer.encode()
             out = BytesIO()
-            with gzip.GzipFile(fileobj=out, mode="wb") as f:
-                f.write(byte_string_buffer)
-            f.close()
+            with gzip.GzipFile(fileobj=out, mode='wb') as out_fileobj:
+                out_fileobj.write(byte_string_buffer)
+            out_fileobj.close()
             self.gzip_data = out.getvalue()
 
     def set_link_annotation(self, path=None):
         self.link_file = True
         if path.startswith(r'\\'):
-            self.file_path = "file://" + path.replace('\\', '/')
-        elif path.startswith(r'https') or path.startswith(r'http://'):
+            self.file_path = 'file:// {0}'.format(path.replace('\\', '/'))
+        elif path.startswith('https') or path.startswith('http://'):
             self.file_path = path
         else:
             self.level = 'error'
-            self.description = 'Invalid path given:' + path
+            self.description = 'Invalid path given: {0}'.format(path)
 
     def write_xml(self, parent_element, dom):
         annotation = dom.createElement("annotation")
@@ -90,18 +90,18 @@ class Annotation:
                 annotation.setAttribute("file", self.file_path)
 
         if self.gzip_data is not None:
-                    annotation.setAttribute("link_file", "false")
-                    annotation.setAttribute("mime_type", self.mime_type)
-                    b64_data = base64.b64encode(self.gzip_data)
-                    b64_data_string = b64_data.decode()
-                    cdata = dom.createCDATASection(b64_data_string)
-                    annotation.appendChild(cdata)
+            annotation.setAttribute("link_file", "false")
+            annotation.setAttribute("mime_type", self.mime_type)
+            b64_data = base64.b64encode(self.gzip_data)
+            b64_data_string = b64_data.decode()
+            cdata = dom.createCDATASection(b64_data_string)
+            annotation.appendChild(cdata)
 
         # add comments
-        for c in self.comments:
-            c_elem = dom.createElement('comment')
-            c_elem.setAttribute("label", c.name)
-            cdata = dom.createCDATASection(c.comment)
+        for comment in self.comments:
+            c_elem = dom.createElement("comment")
+            c_elem.setAttribute("label", comment.name)
+            cdata = dom.createCDATASection(comment.comment)
             c_elem.appendChild(cdata)
             annotation.appendChild(c_elem)
 
@@ -132,20 +132,20 @@ class TestCase:
 
     def fail(self, message):
         self.status = 'failed'
-        ta = self.add_text_annotation('FAIL', 'error')
-        ta.description = message
+        text_annotation = self.add_text_annotation('FAIL', 'error')
+        text_annotation.description = message
 
     def add_info_annotation(self, message):
-        ta = self.add_text_annotation('Info', 'info')
-        ta.description = message
+        text_annotation = self.add_text_annotation('Info', 'info')
+        text_annotation.description = message
 
     def add_warning_annotation(self, message):
-        ta = self.add_text_annotation('Warning', 'warn')
-        ta.description = message
+        text_annotation = self.add_text_annotation('Warning', 'warn')
+        text_annotation.description = message
 
     def add_error_annotation(self, message):
-        ta = self.add_text_annotation('Error', 'error')
-        ta.description = message
+        text_annotation = self.add_text_annotation('Error', 'error')
+        text_annotation.description = message
 
     def add_file_annotation(self, name, level='info', description='',
                             file_path=None, mime_type='text/plain'):
@@ -170,14 +170,14 @@ class TestCase:
         return fa
 
     def add_text_annotation(self, name, level='info', description=''):
-        ta = Annotation(name, level, description)
-        self.annotations.append(ta)
-        return ta
+        text_annotation = Annotation(name, level, description)
+        self.annotations.append(text_annotation)
+        return text_annotation
 
     def add_custom_metric(self, name, value):
-        d = CustomData(name, value)
-        self.custom_data.append(d)
-        return d
+        custom_data = CustomData(name, value)
+        self.custom_data.append(custom_data)
+        return custom_data
 
     def add_annotation(self, annotation):
         self.annotations.append(annotation)
@@ -242,9 +242,9 @@ class TestSuite:
         return fa
 
     def add_text_annotation(self, name, level='info', description=''):
-        ta = Annotation(name, level, description)
-        self.annotations.append(ta)
-        return ta
+        text_annotation = Annotation(name, level, description)
+        self.annotations.append(text_annotation)
+        return text_annotation
 
     def add_annotation(self, annotation):
         self.annotations.append(annotation)
@@ -252,22 +252,35 @@ class TestSuite:
     def set_duration_ms(self, duration):
         self.duration = duration
 
+    def set_description(self, description):
+        self.description = description
+
+    def set_start_time(self, gmt_string):
+        self.start_time = gmt_string
+
 
 class XmlWriter:
     def __init__(self, report):
         self.report = report
-        self.dom = parseString('<reporter schema_version="1.0"/>')
+
+        if report.product_version is None:
+            reporter_string = '<reporter schema_version="1.0"/>'
+        else:
+            reporter_string = '<reporter schema_version="1.0" product_version="{0}"/>'\
+                .format(report.product_version)
+
+        self.dom = parseString(reporter_string)
 
     def write(self, target_file_path, to_pretty=False):
         doc_elem = self.dom.documentElement
         self._write_suite(doc_elem, self.report.get_root_suite())
         if target_file_path:
-            with open(target_file_path, 'w') as f:
+            with open(target_file_path, 'w') as target_file:
                 if to_pretty:
-                    f.write(self.dom.toprettyxml())
+                    target_file.write(self.dom.toprettyxml())
                 else:
-                    f.write(self.dom.toxml())
-                f.flush()
+                    target_file.write(self.dom.toxml())
+                    target_file.flush()
         else:
             if to_pretty:
                 sys.stdout.write(self.dom.toprettyxml())
@@ -320,9 +333,13 @@ class TestspaceReport(TestSuite):
     def __init__(self):
         TestSuite.__init__(self, '__root__')
         self.is_root_suite = True
+        self.product_version = None
 
     def get_root_suite(self):
         return self
+
+    def set_product_version(self, product_version):
+        self.product_version = product_version
 
     def write_xml(self, out_file=None, to_pretty=False):
         writer = XmlWriter(self)
