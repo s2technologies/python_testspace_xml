@@ -34,6 +34,7 @@ class TestTestspaceReportXsd:
             testspace_report.add_test_suite(suite)
 
         example_suite = testspace_report.get_or_add_test_suite('Example Suite')
+        example_suite.set_description('https://testspace.com')
         example_suite.add_link_annotation('https://help.testspace.com')
         example_suite.add_link_annotation('https://testspace.com', name='Testspace.com')
         example_suite.add_string_buffer_annotation(

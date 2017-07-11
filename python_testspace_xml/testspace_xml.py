@@ -54,16 +54,16 @@ class Annotation:
             else:
                 with io.open(self.file_path, 'rb') as in_file:
                     out = BytesIO()
-                    with gzip.GzipFile(fileobj=out, mode='wb') as f:
-                        f.writelines(in_file)
-                    f.close()
+                    with gzip.GzipFile(fileobj=out, mode='wb') as out_fileobj:
+                        out_fileobj.writelines(in_file)
+                    out_fileobj.close()
                     self.gzip_data = out.getvalue()
         elif string_buffer is not None:
             byte_string_buffer = string_buffer.encode()
             out = BytesIO()
-            with gzip.GzipFile(fileobj=out, mode='wb') as f:
-                f.write(byte_string_buffer)
-            f.close()
+            with gzip.GzipFile(fileobj=out, mode='wb') as out_fileobj:
+                out_fileobj.write(byte_string_buffer)
+            out_fileobj.close()
             self.gzip_data = out.getvalue()
 
     def set_link_annotation(self, path=None):
@@ -98,10 +98,10 @@ class Annotation:
             annotation.appendChild(cdata)
 
         # add comments
-        for c in self.comments:
+        for comment in self.comments:
             c_elem = dom.createElement("comment")
-            c_elem.setAttribute("label", c.name)
-            cdata = dom.createCDATASection(c.comment)
+            c_elem.setAttribute("label", comment.name)
+            cdata = dom.createCDATASection(comment.comment)
             c_elem.appendChild(cdata)
             annotation.appendChild(c_elem)
 
@@ -132,20 +132,20 @@ class TestCase:
 
     def fail(self, message):
         self.status = 'failed'
-        ta = self.add_text_annotation('FAIL', 'error')
-        ta.description = message
+        text_annotation = self.add_text_annotation('FAIL', 'error')
+        text_annotation.description = message
 
     def add_info_annotation(self, message):
-        ta = self.add_text_annotation('Info', 'info')
-        ta.description = message
+        text_annotation = self.add_text_annotation('Info', 'info')
+        text_annotation.description = message
 
     def add_warning_annotation(self, message):
-        ta = self.add_text_annotation('Warning', 'warn')
-        ta.description = message
+        text_annotation = self.add_text_annotation('Warning', 'warn')
+        text_annotation.description = message
 
     def add_error_annotation(self, message):
-        ta = self.add_text_annotation('Error', 'error')
-        ta.description = message
+        text_annotation = self.add_text_annotation('Error', 'error')
+        text_annotation.description = message
 
     def add_file_annotation(self, name, level='info', description='',
                             file_path=None, mime_type='text/plain'):
@@ -170,14 +170,14 @@ class TestCase:
         return fa
 
     def add_text_annotation(self, name, level='info', description=''):
-        ta = Annotation(name, level, description)
-        self.annotations.append(ta)
-        return ta
+        text_annotation = Annotation(name, level, description)
+        self.annotations.append(text_annotation)
+        return text_annotation
 
     def add_custom_metric(self, name, value):
-        d = CustomData(name, value)
-        self.custom_data.append(d)
-        return d
+        custom_data = CustomData(name, value)
+        self.custom_data.append(custom_data)
+        return custom_data
 
     def add_annotation(self, annotation):
         self.annotations.append(annotation)
@@ -242,15 +242,21 @@ class TestSuite:
         return fa
 
     def add_text_annotation(self, name, level='info', description=''):
-        ta = Annotation(name, level, description)
-        self.annotations.append(ta)
-        return ta
+        text_annotation = Annotation(name, level, description)
+        self.annotations.append(text_annotation)
+        return text_annotation
 
     def add_annotation(self, annotation):
         self.annotations.append(annotation)
 
     def set_duration_ms(self, duration):
         self.duration = duration
+
+    def set_description(self, description):
+        self.description = description
+
+    def set_start_time(self, gmt_string):
+        self.start_time = gmt_string
 
 
 class XmlWriter:
@@ -269,12 +275,12 @@ class XmlWriter:
         doc_elem = self.dom.documentElement
         self._write_suite(doc_elem, self.report.get_root_suite())
         if target_file_path:
-            with open(target_file_path, 'w') as f:
+            with open(target_file_path, 'w') as target_file:
                 if to_pretty:
-                    f.write(self.dom.toprettyxml())
+                    target_file.write(self.dom.toprettyxml())
                 else:
-                    f.write(self.dom.toxml())
-                f.flush()
+                    target_file.write(self.dom.toxml())
+                    target_file.flush()
         else:
             if to_pretty:
                 sys.stdout.write(self.dom.toprettyxml())
