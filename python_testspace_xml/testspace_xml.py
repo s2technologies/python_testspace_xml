@@ -5,9 +5,19 @@ import os
 import os.path
 import io
 from io import BytesIO
+import re
 import sys
 from xml.dom.minidom import parseString
 
+import builtins
+from six import u
+
+try:
+    # Python 2
+    unichr
+except NameError:  # pragma: nocover
+    # Python 3
+    unichr = chr
 
 class CustomData:
     def __init__(self, name, value):
@@ -277,9 +287,9 @@ class XmlWriter:
         if target_file_path:
             with open(target_file_path, 'w') as target_file:
                 if to_pretty:
-                    target_file.write(self.dom.toprettyxml())
+                    target_file.write(XmlWriter._invalid_xml_remove(self.dom.toprettyxml()))
                 else:
-                    target_file.write(self.dom.toxml())
+                    target_file.write(XmlWriter._invalid_xml_remove(self.dom.toxml()))
                     target_file.flush()
         else:
             if to_pretty:
@@ -327,6 +337,27 @@ class XmlWriter:
 
         for d in test_case.custom_data:
             d.write_xml(elem_tc, self.dom)
+
+    @staticmethod
+    def _invalid_xml_remove(string_to_clean):
+        #http://stackoverflow.com/questions/1707890/fast-way-to-filter-illegal-xml-unicode-chars-in-python
+        illegal_unichrs = [
+            (0x00, 0x08), (0x0B, 0x1F), (0x7F, 0x84), (0x86, 0x9F),
+            (0xD800, 0xDFFF), (0xFDD0, 0xFDDF), (0xFFFE, 0xFFFF),
+            (0x1FFFE, 0x1FFFF), (0x2FFFE, 0x2FFFF), (0x3FFFE, 0x3FFFF),
+            (0x4FFFE, 0x4FFFF), (0x5FFFE, 0x5FFFF), (0x6FFFE, 0x6FFFF),
+            (0x7FFFE, 0x7FFFF), (0x8FFFE, 0x8FFFF), (0x9FFFE, 0x9FFFF),
+            (0xAFFFE, 0xAFFFF), (0xBFFFE, 0xBFFFF), (0xCFFFE, 0xCFFFF),
+            (0xDFFFE, 0xDFFFF), (0xEFFFE, 0xEFFFF), (0xFFFFE, 0xFFFFF),
+            (0x10FFFE, 0x10FFFF)]
+
+        illegal_ranges = ["%s-%s" % (unichr(low), unichr(high))
+                          for (low, high) in illegal_unichrs
+                          if low < sys.maxunicode]
+
+        illegal_xml_re = re.compile(u('[%s]') % u('').join(illegal_ranges))
+        return illegal_xml_re.sub('', string_to_clean)
+
 
 
 class TestspaceReport(TestSuite):
