@@ -91,7 +91,7 @@ class TestTestspaceReportXsd:
         """ teardown any state that was previously setup with a call to
         setup_class.
         """
-        #os.remove('testspace.xml')
+        os.remove('testspace.xml')
 
     def test_number_testsuites(self):
         test_suites = self.testspace_xml_root.xpath("//test_suite")

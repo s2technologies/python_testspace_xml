@@ -1,4 +1,5 @@
 from __future__ import print_function
+import six
 import base64
 import gzip
 import os
@@ -9,8 +10,6 @@ import re
 import sys
 from xml.dom.minidom import parseString
 
-import builtins
-from six import u
 
 try:
     # Python 2
@@ -18,6 +17,7 @@ try:
 except NameError:  # pragma: nocover
     # Python 3
     unichr = chr
+
 
 class CustomData:
     def __init__(self, name, value):
@@ -340,7 +340,7 @@ class XmlWriter:
 
     @staticmethod
     def _invalid_xml_remove(string_to_clean):
-        #http://stackoverflow.com/questions/1707890/fast-way-to-filter-illegal-xml-unicode-chars-in-python
+        # http://stackoverflow.com/questions/1707890/fast-way-to-filter-illegal-xml-unicode-chars-in-python
         illegal_unichrs = [
             (0x00, 0x08), (0x0B, 0x1F), (0x7F, 0x84), (0x86, 0x9F),
             (0xD800, 0xDFFF), (0xFDD0, 0xFDDF), (0xFFFE, 0xFFFF),
@@ -355,9 +355,8 @@ class XmlWriter:
                           for (low, high) in illegal_unichrs
                           if low < sys.maxunicode]
 
-        illegal_xml_re = re.compile(u('[%s]') % u('').join(illegal_ranges))
+        illegal_xml_re = re.compile(six.u('[%s]') % six.u('').join(illegal_ranges))
         return illegal_xml_re.sub('', string_to_clean)
-
 
 
 class TestspaceReport(TestSuite):
