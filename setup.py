@@ -15,5 +15,6 @@ setup(
         'pytest-cov',
         'flake8',
         'pep8-naming',
+        'six'
     ]
 )
