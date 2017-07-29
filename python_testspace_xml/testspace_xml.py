@@ -11,12 +11,12 @@ import sys
 from xml.dom.minidom import parseString
 
 
-try:
-    # Python 2
-    unichr
-except NameError:  # pragma: nocover
-    # Python 3
-    unichr = chr
+# try:
+#     # Python 2
+#     unichr
+# except NameError:  # pragma: nocover
+#     # Python 3
+#     unichr = chr
 
 
 class CustomData:
@@ -351,7 +351,7 @@ class XmlWriter:
             (0xDFFFE, 0xDFFFF), (0xEFFFE, 0xEFFFF), (0xFFFFE, 0xFFFFF),
             (0x10FFFE, 0x10FFFF)]
 
-        illegal_ranges = ["%s-%s" % (unichr(low), unichr(high))
+        illegal_ranges = ["%s-%s" % (six.unichr(low), six.unichr(high))
                           for (low, high) in illegal_unichrs
                           if low < sys.maxunicode]
 
