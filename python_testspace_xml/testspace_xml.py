@@ -11,14 +11,6 @@ import sys
 from xml.dom.minidom import parseString
 
 
-# try:
-#     # Python 2
-#     unichr
-# except NameError:  # pragma: nocover
-#     # Python 3
-#     unichr = chr
-
-
 class CustomData:
     def __init__(self, name, value):
         self.name = name
