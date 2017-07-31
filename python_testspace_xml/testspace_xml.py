@@ -18,7 +18,7 @@ class CustomData:
 
     def write_xml(self, parent_element, dom):
         d_elem = dom.createElement('custom_data')
-        d_elem.setAttribute('name', self.name)
+        d_elem.setAttribute('name', XmlWriter.invalid_xml_remove(self.name))
         cdata = dom.createCDATASection(self.value)
         d_elem.appendChild(cdata)
         parent_element.appendChild(d_elem)
@@ -80,9 +80,9 @@ class Annotation:
 
     def write_xml(self, parent_element, dom):
         annotation = dom.createElement("annotation")
-        annotation.setAttribute("description", self.description)
+        annotation.setAttribute("description", XmlWriter.invalid_xml_remove(self.description))
         annotation.setAttribute("level", self.level)
-        annotation.setAttribute("name", self.name)
+        annotation.setAttribute("name", XmlWriter.invalid_xml_remove(self.name))
 
         if self.file_path is not None:
             if self.link_file:
@@ -102,7 +102,7 @@ class Annotation:
         # add comments
         for comment in self.comments:
             c_elem = dom.createElement("comment")
-            c_elem.setAttribute("label", comment.name)
+            c_elem.setAttribute("label", XmlWriter.invalid_xml_remove(comment.name))
             cdata = dom.createCDATASection(comment.comment)
             c_elem.appendChild(cdata)
             annotation.appendChild(c_elem)
@@ -279,9 +279,9 @@ class XmlWriter:
         if target_file_path:
             with open(target_file_path, 'w') as target_file:
                 if to_pretty:
-                    target_file.write(XmlWriter._invalid_xml_remove(self.dom.toprettyxml()))
+                    target_file.write(self.dom.toprettyxml())
                 else:
-                    target_file.write(XmlWriter._invalid_xml_remove(self.dom.toxml()))
+                    target_file.write(self.dom.toxml())
                     target_file.flush()
         else:
             if to_pretty:
@@ -294,8 +294,8 @@ class XmlWriter:
         suite_elem = parent_node
         if not test_suite.is_root_suite:
             suite_elem = self.dom.createElement('test_suite')
-            suite_elem.setAttribute('name', test_suite.name)
-            suite_elem.setAttribute('description', test_suite.description)
+            suite_elem.setAttribute('name', XmlWriter.invalid_xml_remove(test_suite.name))
+            suite_elem.setAttribute('description', XmlWriter.invalid_xml_remove(test_suite.description))
             suite_elem.setAttribute('start_time', str(test_suite.start_time))
             parent_node.appendChild(suite_elem)
             if test_suite.duration > 0:
@@ -317,8 +317,8 @@ class XmlWriter:
     def _write_test_case(self, parent_node, test_case):
         elem_tc = self.dom.createElement('test_case')
 
-        elem_tc.setAttribute('name', test_case.name)
-        elem_tc.setAttribute('description', test_case.description)
+        elem_tc.setAttribute('name', XmlWriter.invalid_xml_remove(test_case.name))
+        elem_tc.setAttribute('description', XmlWriter.invalid_xml_remove(test_case.description))
         elem_tc.setAttribute('status', test_case.status)
         elem_tc.setAttribute('start_time', test_case.start_time)
         elem_tc.setAttribute('duration', str(test_case.duration))
@@ -331,7 +331,7 @@ class XmlWriter:
             d.write_xml(elem_tc, self.dom)
 
     @staticmethod
-    def _invalid_xml_remove(string_to_clean):
+    def invalid_xml_remove(string_to_clean):
         # http://stackoverflow.com/questions/1707890/fast-way-to-filter-illegal-xml-unicode-chars-in-python
         illegal_unichrs = [
             (0x00, 0x08), (0x0B, 0x1F), (0x7F, 0x84), (0x86, 0x9F),
