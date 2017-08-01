@@ -1,10 +1,12 @@
 from __future__ import print_function
+import six
 import base64
 import gzip
 import os
 import os.path
 import io
 from io import BytesIO
+import re
 import sys
 from xml.dom.minidom import parseString
 
@@ -16,7 +18,7 @@ class CustomData:
 
     def write_xml(self, parent_element, dom):
         d_elem = dom.createElement('custom_data')
-        d_elem.setAttribute('name', self.name)
+        d_elem.setAttribute('name', XmlWriter.invalid_xml_remove(self.name))
         cdata = dom.createCDATASection(self.value)
         d_elem.appendChild(cdata)
         parent_element.appendChild(d_elem)
@@ -78,9 +80,9 @@ class Annotation:
 
     def write_xml(self, parent_element, dom):
         annotation = dom.createElement("annotation")
-        annotation.setAttribute("description", self.description)
+        annotation.setAttribute("description", XmlWriter.invalid_xml_remove(self.description))
         annotation.setAttribute("level", self.level)
-        annotation.setAttribute("name", self.name)
+        annotation.setAttribute("name", XmlWriter.invalid_xml_remove(self.name))
 
         if self.file_path is not None:
             if self.link_file:
@@ -100,7 +102,7 @@ class Annotation:
         # add comments
         for comment in self.comments:
             c_elem = dom.createElement("comment")
-            c_elem.setAttribute("label", comment.name)
+            c_elem.setAttribute("label", XmlWriter.invalid_xml_remove(comment.name))
             cdata = dom.createCDATASection(comment.comment)
             c_elem.appendChild(cdata)
             annotation.appendChild(c_elem)
@@ -292,8 +294,8 @@ class XmlWriter:
         suite_elem = parent_node
         if not test_suite.is_root_suite:
             suite_elem = self.dom.createElement('test_suite')
-            suite_elem.setAttribute('name', test_suite.name)
-            suite_elem.setAttribute('description', test_suite.description)
+            suite_elem.setAttribute('name', XmlWriter.invalid_xml_remove(test_suite.name))
+            suite_elem.setAttribute('description', XmlWriter.invalid_xml_remove(test_suite.description))
             suite_elem.setAttribute('start_time', str(test_suite.start_time))
             parent_node.appendChild(suite_elem)
             if test_suite.duration > 0:
@@ -315,8 +317,8 @@ class XmlWriter:
     def _write_test_case(self, parent_node, test_case):
         elem_tc = self.dom.createElement('test_case')
 
-        elem_tc.setAttribute('name', test_case.name)
-        elem_tc.setAttribute('description', test_case.description)
+        elem_tc.setAttribute('name', XmlWriter.invalid_xml_remove(test_case.name))
+        elem_tc.setAttribute('description', XmlWriter.invalid_xml_remove(test_case.description))
         elem_tc.setAttribute('status', test_case.status)
         elem_tc.setAttribute('start_time', test_case.start_time)
         elem_tc.setAttribute('duration', str(test_case.duration))
@@ -327,6 +329,26 @@ class XmlWriter:
 
         for d in test_case.custom_data:
             d.write_xml(elem_tc, self.dom)
+
+    @staticmethod
+    def invalid_xml_remove(string_to_clean):
+        # http://stackoverflow.com/questions/1707890/fast-way-to-filter-illegal-xml-unicode-chars-in-python
+        illegal_unichrs = [
+            (0x00, 0x08), (0x0B, 0x1F), (0x7F, 0x84), (0x86, 0x9F),
+            (0xD800, 0xDFFF), (0xFDD0, 0xFDDF), (0xFFFE, 0xFFFF),
+            (0x1FFFE, 0x1FFFF), (0x2FFFE, 0x2FFFF), (0x3FFFE, 0x3FFFF),
+            (0x4FFFE, 0x4FFFF), (0x5FFFE, 0x5FFFF), (0x6FFFE, 0x6FFFF),
+            (0x7FFFE, 0x7FFFF), (0x8FFFE, 0x8FFFF), (0x9FFFE, 0x9FFFF),
+            (0xAFFFE, 0xAFFFF), (0xBFFFE, 0xBFFFF), (0xCFFFE, 0xCFFFF),
+            (0xDFFFE, 0xDFFFF), (0xEFFFE, 0xEFFFF), (0xFFFFE, 0xFFFFF),
+            (0x10FFFE, 0x10FFFF)]
+
+        illegal_ranges = ["%s-%s" % (six.unichr(low), six.unichr(high))
+                          for (low, high) in illegal_unichrs
+                          if low < sys.maxunicode]
+
+        illegal_xml_re = re.compile(six.u('[%s]') % six.u('').join(illegal_ranges))
+        return illegal_xml_re.sub('', string_to_clean)
 
 
 class TestspaceReport(TestSuite):

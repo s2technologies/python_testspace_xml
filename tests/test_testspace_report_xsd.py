@@ -74,6 +74,10 @@ class TestTestspaceReportXsd:
         test_case.set_status('not_applicable')
         example_suite.add_test_case(test_case)
 
+        test_suite1 = testspace_report.get_or_add_test_suite('1 testsuite')
+        test_case = testspace_xml.TestCase('Test case with illegel xml characters & and \0x10FFFF')
+        test_suite1.add_test_case(test_case)
+
         testspace_report.write_xml('testspace.xml', to_pretty=True)
 
         xml_file = open('testspace.xml', 'r')
@@ -108,11 +112,15 @@ class TestTestspaceReportXsd:
 
     def test_number_testcases(self):
         test_cases = self.testspace_xml_root.xpath("//test_suite/test_case")
+        assert len(test_cases) is 5
+
+    def test_number_testcases_example_suite(self):
+        test_cases = self.testspace_xml_root.xpath("//test_suite[@name='Example Suite']/test_case")
         assert len(test_cases) is 4
 
     def test_number_passed_testcases(self):
         test_cases = self.testspace_xml_root.xpath("//test_suite/test_case[@status='passed']")
-        assert len(test_cases) is 2
+        assert len(test_cases) is 3
 
     def test_number_failed_testcases(self):
         test_cases = self.testspace_xml_root.xpath("//test_suite/test_case[@status='failed']")
