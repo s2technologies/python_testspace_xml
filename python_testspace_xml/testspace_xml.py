@@ -6,6 +6,7 @@ import os
 import os.path
 import io
 from io import BytesIO
+from io import open
 import re
 import sys
 from xml.dom.minidom import parseString
@@ -277,7 +278,7 @@ class XmlWriter:
         doc_elem = self.dom.documentElement
         self._write_suite(doc_elem, self.report.get_root_suite())
         if target_file_path:
-            with open(target_file_path, 'w') as target_file:
+            with open(target_file_path, encoding='utf-8', mode='w') as target_file:
                 if to_pretty:
                     target_file.write(self.dom.toprettyxml())
                 else:
