@@ -6,6 +6,7 @@ import os
 import os.path
 import io
 from io import BytesIO
+from io import open
 import re
 import sys
 from xml.dom.minidom import parseString
