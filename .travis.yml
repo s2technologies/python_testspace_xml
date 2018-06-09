@@ -10,14 +10,16 @@ before_install:
 
 install:
   - pip install tox
+  - pip install --user codecov
 
 script:
   - export PYTHONPATH=$PYTHONPATH:$TRAVIS_BUILD_DIR
   - tox -e py
 
 after_script:
+  - codecov
   - if [ "${TRAVIS_PYTHON_VERSION}" = "3.5" ]; then
-      testspace [${TRAVIS_PYTHON_VERSION}]flake8.txt{lint} [${TRAVIS_PYTHON_VERSION}/tests]testresults.xml{tests} [${TRAVIS_PYTHON_VERSION}]coverage.xml;
+      testspace [${TRAVIS_PYTHON_VERSION}]flake8.txt{lint} [${TRAVIS_PYTHON_VERSION}/tests]testresults.xml{tests} --link=codecov;
     else
       testspace [${TRAVIS_PYTHON_VERSION}/tests]testresults.xml{tests};
     fi
