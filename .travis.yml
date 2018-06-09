@@ -10,7 +10,7 @@ before_install:
 
 install:
   - pip install tox
-  - pip install --user codecov
+  - pip install codecov
 
 script:
   - export PYTHONPATH=$PYTHONPATH:$TRAVIS_BUILD_DIR
