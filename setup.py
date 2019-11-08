@@ -1,20 +1,16 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='testspace_api',
+    name='python_testspace_xml',
     version='',
-    packages=find_packages(),
+    packages=find_packages(include=['python_testspace_xml', 'python_testspace_xml.*']),
     url='',
-    license='',
-    author='jaschultz',
-    author_email='',
-    description='',
+    license="MIT license",
+    author="Jeffrey Schultz",
+    author_email='jeffs@s2technologies.com',
+    description="Module for interacting with Testspace Server",
     install_requires=[
         'lxml',
-        'pytest',
-        'pytest-cov',
-        'flake8',
-        'pep8-naming',
         'six'
     ]
 )
