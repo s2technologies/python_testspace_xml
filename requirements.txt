@@ -1,6 +1,1 @@
-pytest
-lxml
-flake8
-pep8-naming
-pytest-cov
 six
