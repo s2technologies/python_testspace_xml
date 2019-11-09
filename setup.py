@@ -10,7 +10,6 @@ setup(
     author_email='jeffs@s2technologies.com',
     description="Module for interacting with Testspace Server",
     install_requires=[
-        'lxml',
         'six'
     ]
 )
