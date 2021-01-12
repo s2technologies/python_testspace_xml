@@ -283,7 +283,6 @@ class XmlWriter:
                     target_file.write(self.dom.toprettyxml())
                 else:
                     target_file.write(self.dom.toxml())
-                    target_file.flush()
         else:
             if to_pretty:
                 sys.stdout.write(self.dom.toprettyxml())

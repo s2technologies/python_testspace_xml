@@ -6,9 +6,9 @@ setup(
     packages=find_packages(include=['python_testspace_xml', 'python_testspace_xml.*']),
     url='',
     license="MIT license",
-    author="Jeffrey Schultz",
-    author_email='jeffs@s2technologies.com',
-    description="Module for interacting with Testspace Server",
+    author="Ivailo Petrov",
+    author_email='ivailop@s2technologies.com',
+    description="Module for generating Testspace XML format result files",
     install_requires=[
         'six'
     ]
