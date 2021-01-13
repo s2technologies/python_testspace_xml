@@ -1,6 +1,6 @@
 # python_testspace_xml
 
-A python library for creating [Testspace](https://signin.testspace.com/) xml result files. This is based on the Testspace result [xml format](https://help.testspace.com/reference:result-file-format).
+A python library for creating [Testspace XML format](https://help.testspace.com/reference:result-file-format) result files.
 
 ## Getting Started
 
@@ -32,7 +32,7 @@ tox -e py
 
 ## Contributing
 
-All pull request are built with [travisci.org](https://travis-ci.org/s2technologies/python_testspace_xml), with the test, code coverage and static analysis results reports at [Testspace](https://travis-ci.org/s2technologies/python_testspace_xml)
+Feel free to clone, modify code and request a PR to this repository. All PRs and issues will be reviewed by the Testspace team.
 
 
 ## License
