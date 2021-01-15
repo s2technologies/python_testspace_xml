@@ -272,7 +272,7 @@ class XmlWriter:
             reporter_string = '<reporter schema_version="1.0" product_version="{0}"/>'\
                 .format(report.product_version)
 
-        self.dom = parseString(reporter_string)
+        self.dom = parseString(u'{0}'.format(reporter_string).encode('utf-8'))
 
     def write(self, target_file_path, to_pretty=False):
         doc_elem = self.dom.documentElement
