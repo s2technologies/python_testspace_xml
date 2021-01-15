@@ -1,6 +1,6 @@
 # python_testspace_xml
 
-A python library for creating [Testspace XML format](https://help.testspace.com/reference:result-file-format) result files.
+A python library for creating [Testspace XML format](https://help.testspace.com/docs/reference/data-formats#generic-format) result files.
 
 ## Getting Started
 
