@@ -71,7 +71,7 @@ class Annotation:
     def set_link_annotation(self, path=None):
         self.link_file = True
         if path.startswith(r'\\'):
-            self.file_path = 'file:// {0}'.format(path.replace('\\', '/'))
+            self.file_path = 'file://{0}'.format(path.replace('\\', '/'))
         elif path.startswith('https') or path.startswith('http://'):
             self.file_path = path
         else:
