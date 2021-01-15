@@ -84,11 +84,7 @@ class TestTestspaceReportXsd:
 
         testspace_report.write_xml('testspace.xml', to_pretty=True)
 
-        xml_file = open('testspace.xml', 'r')
-        testspace_xml_string = xml_file.read()
-        xml_file.close()
-
-        cls.testspace_xml_root = etree.fromstring(testspace_xml_string)
+        cls.testspace_xml_root = etree.parse('testspace.xml').getroot()
 
     @classmethod
     def teardown_class(cls):

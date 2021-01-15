@@ -6,7 +6,6 @@ import os
 import os.path
 import io
 from io import BytesIO
-from io import open
 import re
 import sys
 from xml.dom.minidom import parseString
@@ -272,22 +271,22 @@ class XmlWriter:
             reporter_string = '<reporter schema_version="1.0" product_version="{0}"/>'\
                 .format(report.product_version)
 
-        self.dom = parseString(u'{0}'.format(reporter_string).encode('utf-8'))
+        self.dom = parseString(reporter_string)
 
     def write(self, target_file_path, to_pretty=False):
         doc_elem = self.dom.documentElement
         self._write_suite(doc_elem, self.report.get_root_suite())
+        xml_attrs = {'encoding': 'utf-8'}
+        if to_pretty:
+            xml_attrs.update(indent='\t', newl='\n')
         if target_file_path:
-            with open(target_file_path, encoding='utf-8', mode='w') as target_file:
-                if to_pretty:
-                    target_file.write(self.dom.toprettyxml())
-                else:
-                    target_file.write(self.dom.toxml())
+            file_attrs = {}
+            if sys.version_info > (3,0):
+                file_attrs = {'encoding': 'utf-8'}
+            with open(target_file_path, 'w', **file_attrs) as target_file:
+                self.dom.writexml(target_file, **xml_attrs)
         else:
-            if to_pretty:
-                sys.stdout.write(self.dom.toprettyxml())
-            else:
-                sys.stdout.write(self.dom.toxml())
+            self.dom.writexml(sys.stdout, **xml_attrs)
 
     def _write_suite(self, parent_node, test_suite):
         # don't explicitly add suite for root suite
