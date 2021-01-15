@@ -75,7 +75,11 @@ class TestTestspaceReportXsd:
         example_suite.add_test_case(test_case)
 
         test_suite1 = testspace_report.get_or_add_test_suite('1 testsuite')
-        test_case = testspace_xml.TestCase('Test case with illegel xml characters & and \0x10FFFF')
+        test_case = testspace_xml.TestCase('illegal xml character &')
+        test_suite1.add_test_case(test_case)
+        test_case = testspace_xml.TestCase('illegal unicode character \0x10FFFF')
+        test_suite1.add_test_case(test_case)
+        test_case = testspace_xml.TestCase('non-ascii character \0xC2')
         test_suite1.add_test_case(test_case)
 
         testspace_report.write_xml('testspace.xml', to_pretty=True)
@@ -112,7 +116,7 @@ class TestTestspaceReportXsd:
 
     def test_number_testcases(self):
         test_cases = self.testspace_xml_root.xpath("//test_suite/test_case")
-        assert len(test_cases) is 5
+        assert len(test_cases) is 7
 
     def test_number_testcases_example_suite(self):
         test_cases = self.testspace_xml_root.xpath("//test_suite[@name='Example Suite']/test_case")
@@ -120,7 +124,7 @@ class TestTestspaceReportXsd:
 
     def test_number_passed_testcases(self):
         test_cases = self.testspace_xml_root.xpath("//test_suite/test_case[@status='passed']")
-        assert len(test_cases) is 3
+        assert len(test_cases) is 5
 
     def test_number_failed_testcases(self):
         test_cases = self.testspace_xml_root.xpath("//test_suite/test_case[@status='failed']")
