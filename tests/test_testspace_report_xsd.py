@@ -135,9 +135,9 @@ class TestTestspaceReportXsd:
         test_cases = self.testspace_xml_root.xpath("//test_suite/test_case/annotation")
         assert len(test_cases) is 12
 
-    def test_number_testcase_file_annotations(self):
-        test_cases = self.testspace_xml_root.xpath("//test_suite/test_case/annotation[@file]")
-        assert len(test_cases) is 2
+    def test_number_testcase_link_annotations(self):
+        test_cases = self.testspace_xml_root.xpath("//test_suite/test_case/annotation[@link_file='true']")
+        assert len(test_cases) is 1
 
     def test_number_testcase_annotation_comments(self):
         test_cases = self.testspace_xml_root.xpath("//test_suite/test_case/annotation/comment")

@@ -45,38 +45,51 @@ class Annotation:
         comment = AnnotationComment(name, comment)
         self.comments.append(comment)
 
-    def set_file_annotation(self, file_path=None, mime_type='text/plain', string_buffer=None):
+    def set_file(self, file_path, mime_type='octet/stream'):
+        self.link_file = False
         self.file_path = file_path
         self.mime_type = mime_type
-        if file_path is not None:
+        if file_path:
             if not os.path.isfile(self.file_path):
                 self.level = 'error'
-                self.description = 'File: {0} not found'.format(self.file_path)
+                self.description = 'File not found: {0} '.format(self.file_path)
                 self.file_path = None
-            else:
-                with io.open(self.file_path, 'rb') as in_file:
-                    out = BytesIO()
-                    with gzip.GzipFile(fileobj=out, mode='wb') as out_fileobj:
-                        out_fileobj.writelines(in_file)
-                    out_fileobj.close()
-                    self.gzip_data = out.getvalue()
-        elif string_buffer is not None:
-            byte_string_buffer = string_buffer.encode()
-            out = BytesIO()
-            with gzip.GzipFile(fileobj=out, mode='wb') as out_fileobj:
-                out_fileobj.write(byte_string_buffer)
-            out_fileobj.close()
-            self.gzip_data = out.getvalue()
+                return
 
-    def set_link_annotation(self, path=None):
+            with io.open(self.file_path, 'rb') as in_file_obj:
+                out = BytesIO()
+                with gzip.GzipFile(fileobj=out, mode='wb') as out_file_obj:
+                    out_file_obj.writelines(in_file_obj)
+                self.gzip_data = out.getvalue()
+
+    def set_buffer(self, buffer, mime_type='octet/stream', file_name=None):
+        self.link_file = False
+        self.file_path = file_name
+        self.mime_type = mime_type
+        out = BytesIO()
+        with gzip.GzipFile(fileobj=out, mode='wb') as out_file_obj:
+            out_file_obj.write(buffer)
+        self.gzip_data = out.getvalue()
+
+    def set_link(self, url):
         self.link_file = True
-        if path.startswith(r'\\'):
-            self.file_path = 'file://{0}'.format(path.replace('\\', '/'))
-        elif path.startswith('https') or path.startswith('http://'):
-            self.file_path = path
-        else:
-            self.level = 'error'
-            self.description = 'Invalid path given: {0}'.format(path)
+        self.gzip_data = None
+        self.mime_type = None
+        if re.match(r'^(https?|file)://', url):
+            self.file_path = url
+            return
+
+        prefix = ''
+        if url.startswith('\\'): # Windows network path
+            url = url.replace('\\', '/')
+        elif re.match(r'^[:alpha:]:', url): # Windows local path
+            url = url.replace('\\', '/')
+            prefix = '/'
+
+        if not url.startswith('//'):
+            prefix = '//'
+
+        self.file_path = 'file:{0}{1}'.format(prefix, url)
 
     def write_xml(self, parent_element, dom):
         annotation = dom.createElement("annotation")
@@ -84,20 +97,18 @@ class Annotation:
         annotation.setAttribute("level", self.level)
         annotation.setAttribute("name", XmlWriter.invalid_xml_remove(self.name))
 
-        if self.file_path is not None:
-            if self.link_file:
-                annotation.setAttribute("link_file", "true")
-                annotation.setAttribute("file", self.file_path)
-            else:
-                annotation.setAttribute("file", self.file_path)
-
-        if self.gzip_data is not None:
+        if self.gzip_data:
             annotation.setAttribute("link_file", "false")
+            if self.file_path:
+                annotation.setAttribute("file_name", os.path.basename(self.file_path))
             annotation.setAttribute("mime_type", self.mime_type)
             b64_data = base64.b64encode(self.gzip_data)
             b64_data_string = b64_data.decode()
             cdata = dom.createCDATASection(b64_data_string)
             annotation.appendChild(cdata)
+        elif self.link_file and self.file_path:
+            annotation.setAttribute("link_file", "true")
+            annotation.setAttribute("file", self.file_path)
 
         # add comments
         for comment in self.comments:
@@ -123,53 +134,50 @@ class TestCase:
     def set_description(self, description):
         self.description = description
 
-    def set_duration_ms(self, duration):
-        self.duration = duration
+    def set_start_time(self, gmt_string):
+        self.start_time = gmt_string
+
+    def set_duration(self, duration_ms):
+        self.duration = duration_ms
+
+    set_duration_ms = set_duration
 
     def set_status(self, status):
         self.status = status
 
-    def set_start_time(self, gmt_string):
-        self.start_time = gmt_string
-
     def fail(self, message):
         self.status = 'failed'
-        text_annotation = self.add_text_annotation('FAIL', 'error')
-        text_annotation.description = message
+        self.add_text_annotation('Error', 'error', message)
+
+    def block(self, message):
+        self.status = 'errored'
+        self.add_text_annotation('Fatal', 'fatal', message)
 
     def add_info_annotation(self, message):
-        text_annotation = self.add_text_annotation('Info', 'info')
-        text_annotation.description = message
+        return self.add_text_annotation('Info', 'info', message)
 
     def add_warning_annotation(self, message):
-        text_annotation = self.add_text_annotation('Warning', 'warn')
-        text_annotation.description = message
+        return self.add_text_annotation('Warning', 'warn', message)
 
     def add_error_annotation(self, message):
-        text_annotation = self.add_text_annotation('Error', 'error')
-        text_annotation.description = message
+        return self.add_text_annotation('Error', 'error', message)
 
-    def add_file_annotation(self, name, level='info', description='',
-                            file_path=None, mime_type='text/plain'):
-        fa = Annotation(name, level, description)
-        fa.set_file_annotation(file_path, mime_type)
-        self.annotations.append(fa)
+    def add_file_annotation(self, name, file_path, level='info', description='', mime_type='text/plain'):
+        fa = self.add_text_annotation(name, level, description)
+        fa.set_file(file_path, mime_type)
         return fa
 
-    def add_string_buffer_annotation(self, name, level='info', description='',
-                                     string_buffer=None, mime_type='text/plain'):
-        fa = Annotation(name, level, description)
-        fa.set_file_annotation(string_buffer=string_buffer, mime_type=mime_type)
-        self.annotations.append(fa)
-        return fa
+    def add_string_buffer_annotation(self, name, string_buffer, level='info', description='', mime_type='text/plain'):
+        ba = self.add_text_annotation(name, level, description)
+        ba.set_buffer(string_buffer.encode(), mime_type)
+        return ba
 
-    def add_link_annotation(self, path, level='info', description='', name=None):
-        if name is None:
-            name = path
-        fa = Annotation(name, level, description)
-        fa.set_link_annotation(path)
-        self.annotations.append(fa)
-        return fa
+    def add_link_annotation(self, url, level='info', description='', name=None):
+        if not name:
+            name = url
+        la = self.add_text_annotation(name, level, description)
+        la.set_link(url)
+        return la
 
     def add_text_annotation(self, name, level='info', description=''):
         text_annotation = Annotation(name, level, description)
@@ -198,6 +206,17 @@ class TestSuite:
         self.custom_data = []
         self.annotations = []
 
+    def set_description(self, description):
+        self.description = description
+
+    def set_start_time(self, gmt_string):
+        self.start_time = gmt_string
+
+    def set_duration(self, duration_ms):
+        self.duration = duration_ms
+
+    set_duration_ms = set_duration
+
     def add_test_case(self, tc):
         self.test_cases.append(tc)
         return tc
@@ -211,61 +230,48 @@ class TestSuite:
                 return suite
         return self.add_test_suite(suite_name)
 
-    def add_test_suite(self, name):
-        new_suite = TestSuite(name)
-        self.sub_suites.append(new_suite)
-        return new_suite
+    def add_test_suite(self, ts_or_name):
+        if isinstance(ts_or_name, str):
+            ts_or_name = TestSuite(ts_or_name)
+        self.sub_suites.append(ts_or_name)
+        return ts_or_name
 
-    def add_custom_metric(self, name, value):
-        d = CustomData(name, value)
-        self.custom_data.append(d)
-        return d
-
-    def add_file_annotation(self, name, level='info', description='',
-                            file_path=None, mime_type='text/plain'):
-        fa = Annotation(name, level, description)
-        fa.set_file_annotation(file_path, mime_type)
-        self.annotations.append(fa)
+    def add_file_annotation(self, name, file_path, level='info', description='', mime_type='text/plain'):
+        fa = self.add_text_annotation(name, level, description)
+        fa.set_file(file_path, mime_type)
         return fa
 
-    def add_string_buffer_annotation(self, name, level='info', description='',
-                                     string_buffer=None, mime_type='text/plain'):
-        fa = Annotation(name, level, description)
-        fa.set_file_annotation(string_buffer=string_buffer, mime_type=mime_type)
-        self.annotations.append(fa)
-        return fa
+    def add_string_buffer_annotation(self, name, string_buffer, level='info', description='', mime_type='text/plain'):
+        ba = self.add_text_annotation(name, level, description)
+        ba.set_buffer(string_buffer.encode(), mime_type)
+        return ba
 
-    def add_link_annotation(self, path, level='info', description='', name=None):
-        if name is None:
-            name = path
-        fa = Annotation(name, level, description)
-        fa.set_link_annotation(path)
-        self.annotations.append(fa)
-        return fa
+    def add_link_annotation(self, url, level='info', description='', name=None):
+        if not name:
+            name = url
+        la = self.add_text_annotation(name, level, description)
+        la.set_link(url)
+        return la
 
     def add_text_annotation(self, name, level='info', description=''):
         text_annotation = Annotation(name, level, description)
         self.annotations.append(text_annotation)
         return text_annotation
 
+    def add_custom_metric(self, name, value):
+        d = CustomData(name, value)
+        self.custom_data.append(d)
+        return d
+
     def add_annotation(self, annotation):
         self.annotations.append(annotation)
-
-    def set_duration_ms(self, duration):
-        self.duration = duration
-
-    def set_description(self, description):
-        self.description = description
-
-    def set_start_time(self, gmt_string):
-        self.start_time = gmt_string
 
 
 class XmlWriter:
     def __init__(self, report):
         self.report = report
 
-        if report.product_version is None:
+        if not report.product_version:
             reporter_string = '<reporter schema_version="1.0"/>'
         else:
             reporter_string = '<reporter schema_version="1.0" product_version="{0}"/>'\
@@ -273,20 +279,23 @@ class XmlWriter:
 
         self.dom = parseString(reporter_string)
 
-    def write(self, target_file_path, to_pretty=False):
+    def write(self, out_file, to_pretty=False):
         doc_elem = self.dom.documentElement
         self._write_suite(doc_elem, self.report.get_root_suite())
         xml_attrs = {'encoding': 'utf-8'}
         if to_pretty:
             xml_attrs.update(indent='\t', newl='\n')
-        if target_file_path:
+
+        if out_file and isinstance(out_file, str):
             file_attrs = {}
             if sys.version_info > (3,0):
                 file_attrs = {'encoding': 'utf-8'}
-            with open(target_file_path, 'w', **file_attrs) as target_file:
-                self.dom.writexml(target_file, **xml_attrs)
+            with open(out_file, 'w', **file_attrs) as file_obj:
+                self.dom.writexml(file_obj, **xml_attrs)
         else:
-            self.dom.writexml(sys.stdout, **xml_attrs)
+            if not out_file:
+                out_file = sys.stdout
+            self.dom.writexml(out_file, **xml_attrs)
 
     def _write_suite(self, parent_node, test_suite):
         # don't explicitly add suite for root suite
@@ -362,6 +371,6 @@ class TestspaceReport(TestSuite):
     def set_product_version(self, product_version):
         self.product_version = product_version
 
-    def write_xml(self, out_file=None, to_pretty=False):
+    def write_xml(self, out_file, to_pretty=False):
         writer = XmlWriter(self)
         writer.write(out_file, to_pretty)

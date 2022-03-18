@@ -1,6 +1,6 @@
 # python_testspace_xml
 
-A python library for creating [Testspace XML format](https://help.testspace.com/docs/reference/data-formats#generic-format) result files.
+A python library for creating [Testspace XML format](https://help.testspace.com/reference/data-formats#generic-format) result files.
 
 ## Getting Started
 
@@ -9,9 +9,9 @@ A python library for creating [Testspace XML format](https://help.testspace.com/
 Requires python 2.7 or 3.5 or later and its standard libraries and adding directory to your PYTHONPATH.
 
 ### Example
-To retrieve a list or projects for an organization.
-```
+To create report for a suite with a single test case.
 
+```
 testspace_report = testspace_xml.TestspaceReport()
 
 example_suite = testspace_report.get_or_add_test_suite('Example Suite')
@@ -20,6 +20,7 @@ example_suite.add_test_case(test_case)
 testspace_report.write_xml('testspace.xml')
 
 ```
+
 ## Running the tests
 
 The tests cases are creating using pytest and as part of running tox both code coverage and static analysis are done.

@@ -4,8 +4,15 @@
 <xs:complexType name="commentType">
     <xs:simpleContent>
         <xs:extension base="xs:string">
-            <xs:attribute name="label" type="xs:string" use="required" />
-         </xs:extension>
+            <xs:attribute name="label" use="required">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:minLength value="1"/>
+                        <xs:maxLength value="255"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:attribute>
+        </xs:extension>
     </xs:simpleContent>
 </xs:complexType>
 
@@ -21,15 +28,25 @@
     <xs:sequence minOccurs="0" maxOccurs="unbounded">
         <xs:element name="comment" type="commentType"/>
     </xs:sequence>
-    <xs:attribute name="name" type="xs:string" use="required" />
+    <xs:attribute name="name" use="required">
+        <xs:simpleType>
+            <xs:restriction base="xs:string">
+                <xs:minLength value="1"/>
+                <xs:maxLength value="255"/>
+            </xs:restriction>
+        </xs:simpleType>
+    </xs:attribute>
     <xs:attribute name="description" type="xs:string"/>
     <xs:attribute name="file" type="xs:string"/>
     <xs:attribute name="level" use="required">
         <xs:simpleType>
             <xs:restriction base="xs:string">
+                <xs:enumeration value="trace"/>
+                <xs:enumeration value="debug"/>
                 <xs:enumeration value="info"/>
                 <xs:enumeration value="warn"/>
                 <xs:enumeration value="error"/>
+                <xs:enumeration value="fatal"/>
             </xs:restriction>
         </xs:simpleType>
     </xs:attribute>
@@ -43,14 +60,23 @@
         <xs:element name="custom_data" type="customdataType"/>
         <xs:element name="annotation" type="annotationType"/>
     </xs:choice>
-    <xs:attribute name="name" type="xs:string" use="required" />
+    <xs:attribute name="name" use="required">
+        <xs:simpleType>
+            <xs:restriction base="xs:string">
+                <xs:minLength value="1"/>
+                <xs:maxLength value="1024"/>
+            </xs:restriction>
+        </xs:simpleType>
+    </xs:attribute>
     <xs:attribute name="description" type="xs:string"/>
-    <xs:attribute name="start_time" type="xs:string" />
+    <xs:attribute name="start_time" type="xs:string"/>
     <xs:attribute name="status" use="required">
         <xs:simpleType>
             <xs:restriction base="xs:string">
                 <xs:enumeration value="passed"/>
                 <xs:enumeration value="failed"/>
+                <xs:enumeration value="errored"/>
+                <xs:enumeration value="blocked"/>
                 <xs:enumeration value="unknown"/>
                 <xs:enumeration value="in_progress"/>
                 <xs:enumeration value="not_applicable"/>
@@ -68,13 +94,38 @@
         <xs:element name="custom_data" type="customdataType"/>
         <xs:element name="annotation" type="annotationType"/>
     </xs:choice>
-    <xs:attribute name="name" type="xs:string" use="required" />
+    <xs:attribute name="type">
+      <xs:simpleType>
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="folder"/>
+          <xs:enumeration value="auto"/>
+          <xs:enumeration value="manual"/>
+          <xs:enumeration value="custom"/>
+          <xs:enumeration value="code_coverage"/>
+          <xs:enumeration value="static_analysis"/>
+          <xs:enumeration value="code_change"/>
+          <xs:enumeration value="issues"/>
+        </xs:restriction>
+      </xs:simpleType>
+    </xs:attribute>
+    <xs:attribute name="name" use="required">
+        <xs:simpleType>
+            <xs:restriction base="xs:string">
+                <xs:minLength value="1"/>
+                <xs:maxLength value="255"/>
+            </xs:restriction>
+        </xs:simpleType>
+    </xs:attribute>
     <xs:attribute name="description" type="xs:string" />
-    <xs:attribute name="start_time" type="xs:string" />
+    <xs:attribute name="cached" type="xs:unsignedInt"/>
+    <xs:attribute name="source_file" type="xs:string"/>
+    <xs:attribute name="runner" type="xs:string"/>
+    <xs:attribute name="start_time" type="xs:string"/>
     <xs:attribute name="unknown" type="xs:unsignedInt" />
     <xs:attribute name="in_progress" type="xs:unsignedInt" />
     <xs:attribute name="passed" type="xs:unsignedInt" />
     <xs:attribute name="failed" type="xs:unsignedInt" />
+    <xs:attribute name="errored" type="xs:unsignedInt" />
     <xs:attribute name="not_applicable" type="xs:unsignedInt" />
     <xs:attribute name="duration" type="xs:float"/>
 </xs:complexType>
