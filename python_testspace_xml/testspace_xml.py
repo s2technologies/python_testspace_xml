@@ -92,28 +92,29 @@ class Annotation:
         self.file_path = 'file:{0}{1}'.format(prefix, url)
 
     def write_xml(self, parent_element, dom):
-        annotation = dom.createElement("annotation")
-        annotation.setAttribute("description", XmlWriter.invalid_xml_remove(self.description))
-        annotation.setAttribute("level", self.level)
-        annotation.setAttribute("name", XmlWriter.invalid_xml_remove(self.name))
+        annotation = dom.createElement('annotation')
+        annotation.setAttribute('name', XmlWriter.invalid_xml_remove(self.name))
+        annotation.setAttribute('level', self.level)
+        if self.description:
+            annotation.setAttribute('description', XmlWriter.invalid_xml_remove(self.description))
 
         if self.gzip_data:
-            annotation.setAttribute("link_file", "false")
+            annotation.setAttribute('link_file', 'false')
             if self.file_path:
-                annotation.setAttribute("file_name", os.path.basename(self.file_path))
-            annotation.setAttribute("mime_type", self.mime_type)
+                annotation.setAttribute('file_name', os.path.basename(self.file_path))
+            annotation.setAttribute('mime_type', self.mime_type)
             b64_data = base64.b64encode(self.gzip_data)
             b64_data_string = b64_data.decode()
             cdata = dom.createCDATASection(b64_data_string)
             annotation.appendChild(cdata)
         elif self.link_file and self.file_path:
-            annotation.setAttribute("link_file", "true")
-            annotation.setAttribute("file", self.file_path)
+            annotation.setAttribute('link_file', 'true')
+            annotation.setAttribute('file', self.file_path)
 
         # add comments
         for comment in self.comments:
-            c_elem = dom.createElement("comment")
-            c_elem.setAttribute("label", XmlWriter.invalid_xml_remove(comment.name))
+            c_elem = dom.createElement('comment')
+            c_elem.setAttribute('label', XmlWriter.invalid_xml_remove(comment.name))
             cdata = dom.createCDATASection(comment.comment)
             c_elem.appendChild(cdata)
             annotation.appendChild(c_elem)
@@ -128,7 +129,7 @@ class TestCase:
         self.status = status
         self.custom_data = []
         self.annotations = []
-        self.start_time = ""
+        self.start_time = None
         self.duration = 0
 
     def set_description(self, description):
@@ -138,7 +139,7 @@ class TestCase:
         self.start_time = gmt_string
 
     def set_duration(self, duration_ms):
-        self.duration = duration_ms
+        self.duration = duration_ms if duration_ms >= 0 else 0
 
     set_duration_ms = set_duration
 
@@ -201,7 +202,7 @@ class TestSuite:
         self.name = name
         self.description = ''
         self.duration = 0
-        self.start_time = ''
+        self.start_time = None
         self.test_cases = []
         self.custom_data = []
         self.annotations = []
@@ -213,7 +214,7 @@ class TestSuite:
         self.start_time = gmt_string
 
     def set_duration(self, duration_ms):
-        self.duration = duration_ms
+        self.duration = duration_ms if duration_ms >= 0 else 0
 
     set_duration_ms = set_duration
 
@@ -303,11 +304,13 @@ class XmlWriter:
         if not test_suite.is_root_suite:
             suite_elem = self.dom.createElement('test_suite')
             suite_elem.setAttribute('name', XmlWriter.invalid_xml_remove(test_suite.name))
-            suite_elem.setAttribute('description', XmlWriter.invalid_xml_remove(test_suite.description))
-            suite_elem.setAttribute('start_time', str(test_suite.start_time))
-            parent_node.appendChild(suite_elem)
+            if test_suite.description:
+                suite_elem.setAttribute('description', XmlWriter.invalid_xml_remove(test_suite.description))
+            if test_suite.start_time:
+                suite_elem.setAttribute('start_time', test_suite.start_time)
             if test_suite.duration > 0:
                 suite_elem.setAttribute('duration', str(test_suite.duration))
+            parent_node.appendChild(suite_elem)
 
         for a in test_suite.annotations:
             a.write_xml(suite_elem, self.dom)
@@ -326,9 +329,11 @@ class XmlWriter:
         elem_tc = self.dom.createElement('test_case')
 
         elem_tc.setAttribute('name', XmlWriter.invalid_xml_remove(test_case.name))
-        elem_tc.setAttribute('description', XmlWriter.invalid_xml_remove(test_case.description))
+        if test_case.description:
+            elem_tc.setAttribute('description', XmlWriter.invalid_xml_remove(test_case.description))
         elem_tc.setAttribute('status', test_case.status)
-        elem_tc.setAttribute('start_time', test_case.start_time)
+        if test_case.start_time:
+            elem_tc.setAttribute('start_time', test_case.start_time)
         elem_tc.setAttribute('duration', str(test_case.duration))
         parent_node.appendChild(elem_tc)
 
@@ -340,6 +345,9 @@ class XmlWriter:
 
     @staticmethod
     def invalid_xml_remove(string_to_clean):
+        if not isinstance(string_to_clean, str):
+            return ''
+
         # http://stackoverflow.com/questions/1707890/fast-way-to-filter-illegal-xml-unicode-chars-in-python
         illegal_unichrs = [
             (0x00, 0x08), (0x0B, 0x1F), (0x7F, 0x84), (0x86, 0x9F),
