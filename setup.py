@@ -9,7 +9,4 @@ setup(
     author="Ivailo Petrov",
     author_email='ivailop@s2technologies.com',
     description="Module for generating Testspace XML format result files",
-    install_requires=[
-        'six'
-    ]
 )

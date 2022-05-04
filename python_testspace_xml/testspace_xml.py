@@ -1,5 +1,4 @@
 from __future__ import print_function
-import six
 import base64
 import gzip
 import os
@@ -232,7 +231,7 @@ class TestSuite:
         return self.add_test_suite(suite_name)
 
     def add_test_suite(self, ts_or_name):
-        if isinstance(ts_or_name, str):
+        if isinstance(ts_or_name, str) or (sys.version_info < (3,0) and isinstance(ts_or_name, unicode)):
             ts_or_name = TestSuite(ts_or_name)
         self.sub_suites.append(ts_or_name)
         return ts_or_name
@@ -287,15 +286,16 @@ class XmlWriter:
         if to_pretty:
             xml_attrs.update(indent='\t', newl='\n')
 
-        if out_file and isinstance(out_file, str):
+        if not out_file:
+            out_file = sys.stdout
+
+        if isinstance(out_file, str) or (sys.version_info < (3,0) and isinstance(out_file, unicode)):
             file_attrs = {}
             if sys.version_info > (3,0):
                 file_attrs = {'encoding': 'utf-8'}
             with open(out_file, 'w', **file_attrs) as file_obj:
                 self.dom.writexml(file_obj, **xml_attrs)
         else:
-            if not out_file:
-                out_file = sys.stdout
             self.dom.writexml(out_file, **xml_attrs)
 
     def _write_suite(self, parent_node, test_suite):
@@ -346,7 +346,8 @@ class XmlWriter:
     @staticmethod
     def invalid_xml_remove(string_to_clean):
         if not isinstance(string_to_clean, str):
-            return ''
+            if sys.version_info > (3,0) or not isinstance(string_to_clean, unicode):
+                return ''
 
         # http://stackoverflow.com/questions/1707890/fast-way-to-filter-illegal-xml-unicode-chars-in-python
         illegal_unichrs = [
@@ -359,11 +360,20 @@ class XmlWriter:
             (0xDFFFE, 0xDFFFF), (0xEFFFE, 0xEFFFF), (0xFFFFE, 0xFFFFF),
             (0x10FFFE, 0x10FFFF)]
 
-        illegal_ranges = ["%s-%s" % (six.unichr(low), six.unichr(high))
-                          for (low, high) in illegal_unichrs
-                          if low < sys.maxunicode]
+        if sys.version_info > (3,0):
+            illegal_ranges = ['%s-%s' % (chr(low), chr(high))
+                            for (low, high) in illegal_unichrs
+                            if low < sys.maxunicode]
 
-        illegal_xml_re = re.compile(six.u('[%s]') % six.u('').join(illegal_ranges))
+            illegal_xml_pattern = '[%s]' % ''.join(illegal_ranges)
+        else:
+            illegal_ranges = [u'%s-%s' % (unichr(low), unichr(high))
+                            for (low, high) in illegal_unichrs
+                            if low < sys.maxunicode]
+
+            illegal_xml_pattern = u'[%s]' % u''.join(illegal_ranges)
+
+        illegal_xml_re = re.compile(illegal_xml_pattern)
         return illegal_xml_re.sub('', string_to_clean)
 
 
